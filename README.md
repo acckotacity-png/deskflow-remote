@@ -1,5 +1,10 @@
 # DeskFlow Remote
 
+## Mobile to Windows PC control
+
+Browser-only sharing cannot click Windows apps. The new [Windows host and mobile controller](windows-host/README.md) supplies native desktop input. For devices on different internet connections, use it over Tailscale; run `windows-host/Start-DeskFlow.bat` on the PC and open its private address on the phone. See the setup guide for requirements and current limits.
+
+
 > **AnyDesk & UltraViewer style Remote Desktop and Live Display Streaming System for Android & Web**
 
 DeskFlow allows you to share and access live displays between mobile devices, PCs, Macs, and Linux systems over the local network or Wi-Fi. It includes an embedded HTTP/MJPEG streaming server that serves a full-featured web client to any web browser without needing any extra software installed on the client computer.

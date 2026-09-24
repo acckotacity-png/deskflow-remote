@@ -673,7 +673,7 @@
                         <h2>Allow Remote Control</h2>
                     </div>
                     <p class="column-desc">
-                        Please tell your partner the following ID and Password if you would like to allow remote control
+                        Browser broadcasting shares your screen for viewing. To control Windows apps from a phone, start the Windows host helper.
                     </p>
 
                     <div class="form-group">
@@ -692,6 +692,9 @@
                         </div>
                     </div>
 
+                    <p class="column-desc">Mobile to PC control: run <strong>windows-host/Start-DeskFlow.bat</strong> on Windows. For different networks, connect both devices with Tailscale.</p>
+                    <button class="btn-share-screen" onclick="openWindowsController()">Open Windows PC controller</button>
+                    <p class="column-desc"><a href="https://github.com/acckotacity-png/deskflow-remote/tree/main/windows-host">Windows setup instructions</a></p>
                     <!-- Hourly Rotation Timer Badge -->
                     <div class="rotation-badge">
                         <span>⏱️ Auto-rotates in:</span>
@@ -709,11 +712,11 @@
                     <div class="checkbox-group">
                         <label class="checkbox-item">
                             <input type="checkbox" checked />
-                            <span>Direct screen connect (No annoying popups)</span>
+                            <span>Browser sharing requires screen capture permission</span>
                         </label>
                         <label class="checkbox-item">
                             <input type="checkbox" checked />
-                            <span>Real-touch tap & app launch enabled</span>
+                            <span>Desktop clicks require the Windows host helper</span>
                         </label>
                     </div>
 
@@ -953,18 +956,8 @@
 
         function handleIncomingPeerData(data) {
             if (data.type === 'touch') {
-                const targetX = data.xRatio * window.innerWidth;
-                const targetY = data.yRatio * window.innerHeight;
-                createClickRipple(targetX, targetY);
-
-                const elem = document.elementFromPoint(targetX, targetY);
-                if (elem) {
-                    // Send real down + up to trigger click
-                    elem.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: targetX, clientY: targetY }));
-                    elem.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: targetX, clientY: targetY }));
-                    elem.click();
-                    if (elem.focus) elem.focus();
-                }
+                // A browser tab cannot inject input into the Windows desktop.
+                showToast('Browser broadcast is view-only. Use the Windows host controller for desktop clicks.');
             } else if (data.type === 'cursor') {
                 updateRemoteCursor(data.x, data.y);
             } else if (data.type === 'text') {
@@ -1005,6 +998,18 @@
         // ====================================================
         // CONNECT TO PARTNER (ZERO-POPUP DIRECT CONNECTION)
         // ====================================================
+        function openWindowsController() {
+            const raw = document.getElementById('partner-id-input').value.trim();
+            if (!raw) { showToast('Enter the PC host address, e.g. 100.x.y.z:8765 (Tailscale).'); return; }
+            try {
+                const url = new URL(raw.includes('://') ? raw : 'http://' + raw);
+                if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) throw new Error();
+                if (!url.port) url.port = '8765';
+                url.pathname = '/'; url.search = ''; url.hash = '';
+                window.location.assign(url.href);
+            } catch (e) { showToast('Enter a valid Windows host IP or hostname.'); }
+        }
+
         function connectToPartner() {
             let partnerId = document.getElementById('partner-id-input').value.trim();
 
@@ -1250,12 +1255,10 @@
 
             createClickRipple(clientX, clientY);
 
-            // 1. Send touch over WebRTC (DOWN followed by UP to trigger real button/app open)
-            if (activeDataConn && activeDataConn.open) {
-                activeDataConn.send({ type: 'touch', action: 'down', xRatio: xRatio, yRatio: yRatio });
-                setTimeout(() => {
-                    activeDataConn.send({ type: 'touch', action: 'up', xRatio: xRatio, yRatio: yRatio });
-                }, 75);
+            // Browser-only screen sharing does not provide native desktop control.
+            if (activeDataConn && activeDataConn.open && !activeHostUrl) {
+                showToast('View-only screen share. Run the Windows host and open its controller to click PC apps.');
+                return;
             }
 
             // 2. Send touch to Android HTTP server (DOWN followed by UP so Android View executes click!)
