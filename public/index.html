@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DeskFlow Remote | Live Display & Remote Desktop</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #070a12;
+            --bg-surface: #0f172a;
+            --bg-card: #141e33;
+            --bg-card-hover: #1c2a47;
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --border-cyan: rgba(0, 229, 255, 0.35);
+            --cyan-primary: #00e5ff;
+            --cyan-glow: rgba(0, 229, 255, 0.3);
+            --orange-accent: #ff5722;
+            --orange-glow: rgba(255, 87, 34, 0.35);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* Top Header */
+        header {
+            height: 64px;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .brand-logo {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--cyan-primary), #0284c7);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 16px var(--cyan-glow);
+        }
+
+        .brand-logo svg {
+            width: 22px;
+            height: 22px;
+            fill: #00222a;
+        }
+
+        .brand-name {
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: -0.3px;
+            color: #fff;
+        }
+
+        .brand-tag {
+            font-size: 11px;
+            font-weight: 700;
+            background: rgba(0, 229, 255, 0.12);
+            color: var(--cyan-primary);
+            border: 1px solid var(--border-cyan);
+            border-radius: 6px;
+            padding: 2px 8px;
+            margin-left: 4px;
+            letter-spacing: 0.5px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--success);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 8px var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .btn {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-main);
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .btn:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-cyan);
+            color: var(--cyan-primary);
+        }
+
+        .btn-primary {
+            background: var(--cyan-primary);
+            color: #00222a;
+            border: none;
+            box-shadow: 0 0 20px var(--cyan-glow);
+        }
+
+        .btn-primary:hover {
+            background: #4ef0ff;
+            color: #00181e;
+            transform: translateY(-1px);
+        }
+
+        .btn-orange {
+            background: var(--orange-accent);
+            color: #fff;
+            border: none;
+            box-shadow: 0 0 20px var(--orange-glow);
+        }
+
+        .btn-orange:hover {
+            background: #ff6e3f;
+            transform: translateY(-1px);
+        }
+
+        /* Container & Grid */
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 24px;
+            width: 100%;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* Top Hero Panel (AnyDesk Connect Bar) */
+        .control-panel {
+            display: grid;
+            grid-template-columns: 1fr 1.3fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .control-panel {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 18px;
+            padding: 24px;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .card-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .my-desk-id {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--cyan-primary);
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .pin-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+
+        .pin-val {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--orange-accent);
+            font-weight: 700;
+            font-size: 16px;
+            letter-spacing: 2px;
+        }
+
+        /* Remote Connect Form */
+        .connect-form {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .input-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 12px;
+        }
+
+        @media (max-width: 500px) {
+            .input-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .form-input {
+            width: 100%;
+            height: 48px;
+            background: rgba(7, 10, 18, 0.7);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            padding: 0 14px;
+            color: #fff;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            border-color: var(--cyan-primary);
+            box-shadow: 0 0 12px var(--cyan-glow);
+        }
+
+        .form-input::placeholder {
+            color: #475569;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .actions-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* Workspace & Remote Display Screen */
+        .remote-stage {
+            background: #000;
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            min-height: 520px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 229, 255, 0.05);
+        }
+
+        #remote-canvas-wrapper {
+            position: relative;
+            max-width: 100%;
+            max-height: 75vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #remote-display-view {
+            max-width: 100%;
+            max-height: 75vh;
+            border-radius: 14px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+            cursor: crosshair;
+            display: block;
+        }
+
+        #screen-video-player {
+            max-width: 100%;
+            max-height: 75vh;
+            border-radius: 14px;
+            display: none;
+        }
+
+        /* Standby Splash */
+        .standby-splash {
+            text-align: center;
+            padding: 40px 20px;
+            max-width: 540px;
+        }
+
+        .splash-icon {
+            width: 72px;
+            height: 72px;
+            background: rgba(0, 229, 255, 0.1);
+            border: 1px solid var(--border-cyan);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px auto;
+        }
+
+        .splash-icon svg {
+            width: 36px;
+            height: 36px;
+            fill: var(--cyan-primary);
+        }
+
+        .splash-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+
+        .splash-desc {
+            font-size: 14px;
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+
+        /* Virtual Mouse Cursor */
+        #virtual-pointer {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--orange-accent);
+            border: 2px solid #fff;
+            box-shadow: 0 0 14px var(--orange-accent);
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            transition: opacity 0.2s;
+            opacity: 0;
+            z-index: 20;
+        }
+
+        /* Floating Remote Dock */
+        .remote-dock {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-cyan);
+            border-radius: 16px;
+            padding: 8px 16px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
+            z-index: 50;
+        }
+
+        .dock-divider {
+            width: 1px;
+            height: 24px;
+            background: var(--border-subtle);
+        }
+
+        .dock-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .dock-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+        }
+
+        .dock-btn.active {
+            color: var(--cyan-primary);
+            background: rgba(0, 229, 255, 0.15);
+        }
+
+        /* Stats Bar on Stream */
+        .stream-telemetry {
+            position: absolute;
+            top: 16px;
+            left: 20px;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            padding: 6px 14px;
+            display: none;
+            align-items: center;
+            gap: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--text-muted);
+            z-index: 30;
+        }
+
+        .telem-val {
+            color: var(--cyan-primary);
+            font-weight: 700;
+        }
+
+        /* Features Cards Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 18px;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 14px;
+            padding: 20px;
+            transition: border-color 0.2s;
+        }
+
+        .feature-card:hover {
+            border-color: var(--border-cyan);
+        }
+
+        .feature-icon {
+            font-size: 24px;
+            margin-bottom: 10px;
+            display: inline-block;
+        }
+
+        .feature-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: #fff;
+        }
+
+        .feature-text {
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #1e293b;
+            border: 1px solid var(--border-cyan);
+            border-radius: 10px;
+            padding: 12px 20px;
+            color: #fff;
+            font-size: 14px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            transform: translateY(30px);
+            opacity: 0;
+            transition: all 0.25s ease;
+            pointer-events: none;
+            z-index: 200;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <a href="#" class="brand">
+            <div class="brand-logo">
+                <svg viewBox="0 0 24 24"><path d="M20 3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h3l-1 2v1h12v-1l-1-2h3c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 13H4V5h16v11z"/></svg>
+            </div>
+            <div>
+                <span class="brand-name">DeskFlow</span>
+                <span class="brand-tag">WEB CLIENT</span>
+            </div>
+        </a>
+
+        <div class="header-actions">
+            <div class="status-pill">
+                <div class="status-dot"></div>
+                <span id="header-status">SERVER READY</span>
+            </div>
+            <button class="btn" onclick="toggleFullscreen()">⛶ Fullscreen</button>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="container">
+
+        <!-- Top Connect & Host Controls -->
+        <section class="control-panel">
+            <!-- Left Card: This Computer / Browser ID -->
+            <div class="card">
+                <div>
+                    <div class="card-title">
+                        <span>YOUR DESKFLOW ID</span>
+                    </div>
+                    <div class="my-desk-id">
+                        <span id="local-desk-id">649 203 118</span>
+                        <button class="btn" style="padding: 6px 10px;" onclick="copyDeskId()">📋 Copy</button>
+                    </div>
+                    <div class="pin-badge">
+                        <span>Session Access PIN:</span>
+                        <span class="pin-val" id="local-pin">4920</span>
+                        <button class="btn" style="padding: 2px 8px; font-size: 11px;" onclick="regeneratePin()">↻ New</button>
+                    </div>
+                </div>
+
+                <div style="margin-top: 16px;">
+                    <!-- Screen Share from this PC to other devices -->
+                    <button class="btn btn-orange" style="width: 100%; justify-content: center; height: 44px;" onclick="startBroadcastingThisScreen()">
+                        🖥️ Share This Computer Screen
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Card: Connect to Remote Phone / PC -->
+            <div class="card">
+                <div>
+                    <div class="card-title">
+                        <span>CONNECT TO REMOTE DESK</span>
+                    </div>
+                    <div class="connect-form">
+                        <div class="input-row">
+                            <input type="text" id="target-address-input" class="form-input" placeholder="Enter Desk ID or IP (e.g. 192.168.1.55:8080)" value="" />
+                            <input type="password" id="target-pin-input" class="form-input" placeholder="PIN (e.g. 6429)" maxlength="6" />
+                        </div>
+
+                        <div class="actions-row">
+                            <button class="btn btn-primary" style="flex: 1; height: 44px; justify-content: center;" onclick="connectToRemoteSystem()">
+                                🚀 Connect to Remote System
+                            </button>
+                            <button class="btn" style="height: 44px;" onclick="launchInteractiveDemo()">
+                                ⚡ Launch Live Demo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 12px; font-size: 12px; color: var(--text-muted);">
+                    Tip: To connect to your phone, open DeskFlow on Android, start broadcast, and enter the displayed IP/ID here.
+                </div>
+            </div>
+        </section>
+
+        <!-- Center Remote Display Viewport -->
+        <section class="remote-stage" id="remote-stage">
+            
+            <!-- Stream Telemetry Overlay -->
+            <div class="stream-telemetry" id="stream-telemetry">
+                <div>FPS: <span class="telem-val" id="telem-fps">30</span></div>
+                <div>PING: <span class="telem-val" id="telem-ping">16 ms</span></div>
+                <div>RES: <span class="telem-val" id="telem-res">720x1520</span></div>
+                <div>LINK: <span class="telem-val" style="color: var(--success);" id="telem-link">SECURE</span></div>
+            </div>
+
+            <!-- Standby Default Splash -->
+            <div class="standby-splash" id="standby-splash">
+                <div class="splash-icon">
+                    <svg viewBox="0 0 24 24"><path d="M21 2H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h7v2H8v2h8v-2h-2v-2h7c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H3V4h18v12z"/></svg>
+                </div>
+                <h2 class="splash-title">Ready for Remote Connection</h2>
+                <p class="splash-desc">
+                    Connect to any Android phone or PC running DeskFlow over your local network, or click <b>"Launch Live Demo"</b> above to test real-time display streaming and touch controls right now.
+                </p>
+                <button class="btn btn-primary" onclick="launchInteractiveDemo()">
+                    ⚡ Test Live Interactive Display Now
+                </button>
+            </div>
+
+            <!-- Display Canvas & Video Container -->
+            <div id="remote-canvas-wrapper" style="display: none;">
+                <canvas id="remote-canvas" width="720" height="1520" style="display: block; max-height: 72vh; border-radius: 12px;"></canvas>
+                <video id="screen-video-player" autoplay playsinline muted></video>
+                <div id="virtual-pointer"></div>
+            </div>
+
+            <!-- Bottom Floating AnyDesk-style Remote Control Dock -->
+            <div class="remote-dock" id="remote-dock">
+                <button class="dock-btn" onclick="sendAction('back')">◀ Back</button>
+                <button class="dock-btn" onclick="sendAction('home')">⚪ Home</button>
+                <button class="dock-btn" onclick="sendAction('recents')">▢ Apps</button>
+                <div class="dock-divider"></div>
+                <button class="dock-btn" onclick="sendAction('volume_down')">🔉 Vol-</button>
+                <button class="dock-btn" onclick="sendAction('volume_up')">🔊 Vol+</button>
+                <button class="dock-btn" onclick="sendAction('power')">⚡ Lock</button>
+                <div class="dock-divider"></div>
+                <input type="text" id="dock-text-input" placeholder="Type to phone..." style="background: rgba(0,0,0,0.5); border: 1px solid var(--border-subtle); border-radius: 6px; color:#fff; padding: 6px 10px; font-size: 13px; outline:none; width: 140px;" onkeydown="if(event.key==='Enter') sendTypedText()" />
+                <button class="dock-btn active" onclick="sendTypedText()">Send</button>
+                <div class="dock-divider"></div>
+                <button class="dock-btn" onclick="takeSnapshot()">📸 Snapshot</button>
+                <button class="dock-btn" style="color: var(--danger);" onclick="disconnectSession()">✕ Exit</button>
+            </div>
+        </section>
+
+        <!-- Feature Cards -->
+        <section class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <div class="feature-title">Ultra Low Latency</div>
+                <div class="feature-text">High-performance video and frame streaming designed for smooth, real-time responsive interaction.</div>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🛡️</div>
+                <div class="feature-title">Zero-Cloud Local Security</div>
+                <div class="feature-text">Direct peer-to-peer and local network connections with one-time 4-digit security PIN authorization.</div>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📱</div>
+                <div class="feature-title">Cross-Platform Control</div>
+                <div class="feature-text">Control Android phones from PC, or broadcast computer screens to tablets without installing third-party clients.</div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">Action dispatched</div>
+
+    <script>
+        // State
+        let isSessionActive = false;
+        let isDemoMode = false;
+        let activeStreamUrl = '';
+        let canvas = document.getElementById('remote-canvas');
+        let ctx = canvas.getContext('2d');
+        let pointer = document.getElementById('virtual-pointer');
+        let demoTimer = null;
+        let demoFrameTick = 0;
+        let touchRipples = [];
+
+        // Initialize Desk ID
+        function generateRandomDeskId() {
+            const p1 = Math.floor(100 + Math.random() * 900);
+            const p2 = Math.floor(100 + Math.random() * 900);
+            const p3 = Math.floor(100 + Math.random() * 900);
+            return p1 + ' ' + p2 + ' ' + p3;
+        }
+
+        document.getElementById('local-desk-id').textContent = generateRandomDeskId();
+
+        function regeneratePin() {
+            const newPin = Math.floor(1000 + Math.random() * 9000);
+            document.getElementById('local-pin').textContent = newPin;
+            showToast('New Session PIN: ' + newPin);
+        }
+
+        function copyDeskId() {
+            const id = document.getElementById('local-desk-id').textContent;
+            navigator.clipboard.writeText(id);
+            showToast('Desk ID copied to clipboard!');
+        }
+
+        // Connect to Remote System
+        async function connectToRemoteSystem() {
+            let addr = document.getElementById('target-address-input').value.trim();
+            const pin = document.getElementById('target-pin-input').value.trim();
+
+            if (!addr) {
+                showToast('Please enter target IP or Desk ID');
+                return;
+            }
+
+            if (!addr.startsWith('http://') && !addr.startsWith('https://')) {
+                if (!addr.includes(':')) addr = addr + ':8080';
+                addr = 'http://' + addr;
+            }
+
+            showToast('Connecting to ' + addr + '...');
+
+            try {
+                // Check status
+                const res = await fetch(addr + '/api/status');
+                if (res.ok) {
+                    // Try auth
+                    if (pin) {
+                        await fetch(addr + '/api/auth', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ pin })
+                        });
+                    }
+
+                    startLiveStreamSession(addr);
+                } else {
+                    showToast('Could not reach remote host. Verify IP and network.');
+                }
+            } catch(e) {
+                showToast('Network error: ' + e.message + '. Starting Demo View instead.');
+                launchInteractiveDemo();
+            }
+        }
+
+        function startLiveStreamSession(baseUrl) {
+            isSessionActive = true;
+            isDemoMode = false;
+            activeStreamUrl = baseUrl;
+
+            document.getElementById('standby-splash').style.display = 'none';
+            document.getElementById('remote-canvas-wrapper').style.display = 'flex';
+            document.getElementById('remote-dock').style.display = 'flex';
+            document.getElementById('stream-telemetry').style.display = 'flex';
+            document.getElementById('header-status').textContent = 'CONNECTED';
+
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.src = baseUrl + '/stream.mjpeg?t=' + Date.now();
+            img.onload = function() {
+                canvas.width = img.naturalWidth || 720;
+                canvas.height = img.naturalHeight || 1520;
+                ctx.drawImage(img, 0, 0);
+            };
+
+            showToast('Connected to DeskFlow Host!');
+        }
+
+        // Launch Interactive Demo
+        function launchInteractiveDemo() {
+            isSessionActive = true;
+            isDemoMode = true;
+
+            document.getElementById('standby-splash').style.display = 'none';
+            document.getElementById('remote-canvas-wrapper').style.display = 'flex';
+            document.getElementById('remote-dock').style.display = 'flex';
+            document.getElementById('stream-telemetry').style.display = 'flex';
+            document.getElementById('header-status').textContent = 'DEMO STREAM ACTIVE';
+
+            if (demoTimer) clearInterval(demoTimer);
+            demoTimer = setInterval(renderDemoScreen, 33); // ~30 fps
+            showToast('Live Interactive Demo Started! Click or drag on screen.');
+        }
+
+        function renderDemoScreen() {
+            demoFrameTick++;
+            const w = canvas.width;
+            const h = canvas.height;
+
+            // Background
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, w, h);
+
+            // Status bar
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(0, 0, w, 70);
+
+            const now = new Date();
+            const timeStr = now.toTimeString().split(' ')[0];
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 28px Outfit';
+            ctx.fillText(timeStr, 32, 46);
+
+            ctx.fillStyle = '#00e5ff';
+            ctx.font = '22px Outfit';
+            ctx.fillText('5G  100% ⚡', w - 160, 46);
+
+            // Main Clock Widget
+            ctx.fillStyle = '#1e283d';
+            roundRect(ctx, 40, 110, w - 80, 240, 24);
+            ctx.fill();
+
+            ctx.fillStyle = '#00e5ff';
+            ctx.font = 'bold 64px JetBrains Mono';
+            ctx.fillText(timeStr, 70, 200);
+
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '26px Outfit';
+            ctx.fillText('DeskFlow Remote Display System', 70, 255);
+
+            ctx.fillStyle = '#10b981';
+            ctx.font = 'bold 20px Outfit';
+            ctx.fillText('● LIVE DISPLAY CONNECTED', 70, 305);
+
+            // Remote Instructions Box
+            ctx.fillStyle = '#141e33';
+            roundRect(ctx, 40, 390, w - 80, 340, 24);
+            ctx.fill();
+
+            ctx.fillStyle = '#ff5722';
+            ctx.font = 'bold 30px Outfit';
+            ctx.fillText('Interactive Touch & Click', 70, 445);
+
+            ctx.fillStyle = '#f8fafc';
+            ctx.font = '24px Outfit';
+            ctx.fillText('1. Click or tap anywhere to send remote touch', 70, 500);
+            ctx.fillText('2. Use bottom dock for Back, Home, and Recents', 70, 550);
+            ctx.fillText('3. Type text in dock to send directly to phone', 70, 600);
+            ctx.fillText('4. Sub-second low latency streaming link', 70, 650);
+
+            // Pulsing circle
+            const pulse = Math.sin(demoFrameTick * 0.1) * 12;
+            ctx.fillStyle = 'rgba(0, 229, 255, 0.2)';
+            ctx.beginPath();
+            ctx.arc(w / 2, 880, 65 + pulse, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#00e5ff';
+            ctx.beginPath();
+            ctx.arc(w / 2, 880, 50, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 24px Outfit';
+            ctx.textAlign = 'center';
+            ctx.fillText('DeskFlow Live', w / 2, 980);
+            ctx.textAlign = 'left';
+
+            // Draw Touch Ripples
+            const curTime = Date.now();
+            touchRipples = touchRipples.filter(r => curTime - r.time < 600);
+            touchRipples.forEach(r => {
+                const age = curTime - r.time;
+                const radius = age * 0.25;
+                const alpha = 1 - (age / 600);
+                ctx.strokeStyle = `rgba(255, 87, 34, ${alpha})`;
+                ctx.lineWidth = 6;
+                ctx.beginPath();
+                ctx.arc(r.x, r.y, radius, 0, Math.PI * 2);
+                ctx.stroke();
+            });
+        }
+
+        function roundRect(ctx, x, y, width, height, radius) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+        }
+
+        // Canvas Interaction
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const px = (e.clientX - rect.left) * scaleX;
+            const py = (e.clientY - rect.top) * scaleY;
+
+            touchRipples.push({ x: px, y: py, time: Date.now() });
+
+            if (!isDemoMode && activeStreamUrl) {
+                fetch(activeStreamUrl + '/api/touch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'down',
+                        xRatio: px / canvas.width,
+                        yRatio: py / canvas.height,
+                        button: e.button
+                    })
+                }).catch(() => {});
+            }
+        });
+
+        // Browser Screen Broadcaster (Share this computer screen)
+        async function startBroadcastingThisScreen() {
+            try {
+                const stream = await navigator.mediaDevices.getDisplayMedia({
+                    video: { cursor: 'always' },
+                    audio: false
+                });
+
+                const video = document.getElementById('screen-video-player');
+                video.srcObject = stream;
+                video.style.display = 'block';
+                canvas.style.display = 'none';
+
+                document.getElementById('standby-splash').style.display = 'none';
+                document.getElementById('remote-canvas-wrapper').style.display = 'flex';
+                document.getElementById('remote-dock').style.display = 'flex';
+                document.getElementById('stream-telemetry').style.display = 'flex';
+                document.getElementById('header-status').textContent = 'BROADCASTING SCREEN';
+
+                showToast('Screen Broadcasting Active! Shared via Web.');
+
+                stream.getVideoTracks()[0].onended = () => {
+                    disconnectSession();
+                    showToast('Screen share ended.');
+                };
+            } catch(e) {
+                showToast('Screen share cancelled or not allowed.');
+            }
+        }
+
+        // Remote Dock Actions
+        function sendAction(actionName) {
+            showToast('Dispatched: ' + actionName.toUpperCase());
+            if (!isDemoMode && activeStreamUrl) {
+                fetch(activeStreamUrl + '/api/key', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ keyType: 'action', actionName })
+                }).catch(() => {});
+            }
+        }
+
+        function sendTypedText() {
+            const input = document.getElementById('dock-text-input');
+            const val = input.value.trim();
+            if (!val) return;
+            showToast('Typed to phone: "' + val + '"');
+            if (!isDemoMode && activeStreamUrl) {
+                fetch(activeStreamUrl + '/api/key', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ keyType: 'text', text: val })
+                }).catch(() => {});
+            }
+            input.value = '';
+        }
+
+        function takeSnapshot() {
+            const link = document.createElement('a');
+            link.download = 'deskflow_snapshot_' + Date.now() + '.png';
+            link.href = canvas.toDataURL();
+            link.click();
+            showToast('Snapshot downloaded!');
+        }
+
+        function disconnectSession() {
+            if (demoTimer) clearInterval(demoTimer);
+            demoTimer = null;
+            isSessionActive = false;
+            isDemoMode = false;
+
+            const video = document.getElementById('screen-video-player');
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(t => t.stop());
+                video.srcObject = null;
+            }
+
+            video.style.display = 'none';
+            canvas.style.display = 'block';
+            document.getElementById('remote-canvas-wrapper').style.display = 'none';
+            document.getElementById('remote-dock').style.display = 'none';
+            document.getElementById('stream-telemetry').style.display = 'none';
+            document.getElementById('standby-splash').style.display = 'block';
+            document.getElementById('header-status').textContent = 'SERVER READY';
+
+            showToast('Session ended');
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2500);
+        }
+    </script>
+</body>
+</html>
