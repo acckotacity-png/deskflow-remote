@@ -42,14 +42,20 @@ class DeskFlowAccessibilityService : AccessibilityService() {
         val screenX = (event.xRatio * metrics.widthPixels).coerceIn(0f, metrics.widthPixels.toFloat())
         val screenY = (event.yRatio * metrics.heightPixels).coerceIn(0f, metrics.heightPixels.toFloat())
 
-        if (event.action == "down" || event.action == "click") {
-            // Method 1: Hardware-level simulated touch gesture via AccessibilityService (Android 7+)
+        if (event.action == "down" || event.action == "click" || event.action == "up") {
+            // 1. Android OS hardware-level simulated touch tap gesture
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 val clickPath = Path().apply {
                     moveTo(screenX, screenY)
+                    // CRITICAL FIX: Android GestureDescription REQUIRES non-zero length path!
+                    // Without lineTo, Android drops zero-length paths and clicks do not register!
+                    lineTo(screenX + 1f, screenY + 1f)
                 }
+
+                // 100ms duration is optimal for Android app icons & buttons
+                val stroke = GestureDescription.StrokeDescription(clickPath, 0, 100)
                 val gesture = GestureDescription.Builder()
-                    .addStroke(GestureDescription.StrokeDescription(clickPath, 0, 60))
+                    .addStroke(stroke)
                     .build()
 
                 dispatchGesture(gesture, object : GestureResultCallback() {
@@ -58,41 +64,55 @@ class DeskFlowAccessibilityService : AccessibilityService() {
                     }
                     override fun onCancelled(gestureDescription: GestureDescription?) {
                         super.onCancelled(gestureDescription)
-                        // Fallback to accessibility node click if gesture was cancelled
-                        clickNodeAtCoordinates(screenX.toInt(), screenY.toInt())
+                        // Fallback: direct Accessibility Node click
+                        clickNodeHierarchyAt(screenX.toInt(), screenY.toInt())
                     }
                 }, null)
             }
 
-            // Method 2: High-reliability Accessibility Node Inspection & Direct Click
-            clickNodeAtCoordinates(screenX.toInt(), screenY.toInt())
+            // 2. Also invoke direct accessibility node click on the targeted app icon/button
+            clickNodeHierarchyAt(screenX.toInt(), screenY.toInt())
         }
     }
 
-    private fun clickNodeAtCoordinates(x: Int, y: Int) {
+    private fun clickNodeHierarchyAt(x: Int, y: Int) {
         Handler(Looper.getMainLooper()).post {
             val root = rootInActiveWindow ?: return@post
-            val target = findClickableNodeAt(root, x, y)
-            if (target != null) {
-                target.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+            val leaf = findDeepestNodeAt(root, x, y) ?: return@post
+
+            // Traverse from the tapped leaf node upwards to find the first clickable element/app icon
+            var current: AccessibilityNodeInfo? = leaf
+            var clicked = false
+
+            while (current != null) {
+                val hasClickAction = current.actionList.any { it.id == AccessibilityNodeInfo.ACTION_CLICK }
+                if (current.isClickable || hasClickAction) {
+                    clicked = current.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                    if (clicked) break
+                }
+                current = current.parent
+            }
+
+            if (!clicked) {
+                // If standard click didn't trigger, try ACTION_SELECT or ACTION_FOCUS
+                leaf.performAction(AccessibilityNodeInfo.ACTION_SELECT)
             }
         }
     }
 
-    private fun findClickableNodeAt(node: AccessibilityNodeInfo, x: Int, y: Int): AccessibilityNodeInfo? {
+    private fun findDeepestNodeAt(node: AccessibilityNodeInfo, x: Int, y: Int): AccessibilityNodeInfo? {
         val bounds = Rect()
         node.getBoundsInScreen(bounds)
         if (!bounds.contains(x, y)) return null
 
-        // Search children first from topmost to bottommost
+        // Check children from top-most to bottom-most
         for (i in node.childCount - 1 downTo 0) {
             val child = node.getChild(i) ?: continue
-            val found = findClickableNodeAt(child, x, y)
+            val found = findDeepestNodeAt(child, x, y)
             if (found != null) return found
         }
 
-        if (node.isClickable) return node
-        return null
+        return node
     }
 
     private fun handleRemoteKeyEvent(event: RemoteKeyEvent) {

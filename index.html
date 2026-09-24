@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Web Automation Remote | Live Display, Pinch-Zoom & Remote Cursor</title>
-    <!-- PeerJS for WebRTC Direct Remote Screen Connection -->
+    <title>Web Automation Remote | Direct Connect & Click Engine</title>
+    <!-- PeerJS for Direct Remote Screen Connection -->
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <style>
         * {
@@ -514,7 +514,6 @@
             border-color: #bd2130;
         }
 
-        /* Zoom Badge */
         .zoom-badge {
             font-size: 11px;
             font-weight: bold;
@@ -537,8 +536,8 @@
             overflow: hidden;
             width: 100%;
             height: calc(100% - 50px);
-            touch-action: none; /* Allows smooth pinch gestures without browser default scroll */
-            cursor: none; /* Hidden system cursor to show our high-contrast remote pointer */
+            touch-action: none;
+            cursor: none;
         }
 
         /* Zoom & Pan Transform Container */
@@ -553,7 +552,7 @@
             max-height: 100%;
         }
 
-        #remote-video, #remote-canvas {
+        #remote-video, #remote-canvas, #mjpeg-stream-view {
             max-width: 100%;
             max-height: 100%;
             width: auto;
@@ -565,9 +564,11 @@
             pointer-events: auto;
         }
 
-        /* ====================================================
-           HIGH-VISIBILITY REMOTE CURSOR POINTER
-           ==================================================== */
+        #mjpeg-stream-view {
+            display: none;
+        }
+
+        /* High-Visibility Pointer Cursor */
         #remote-cursor {
             position: fixed;
             width: 26px;
@@ -649,7 +650,7 @@
         <div class="menu-bar">
             <div class="menu-items">
                 <span onclick="showToast('Web Automation Remote: Ready')">File</span>
-                <span onclick="showToast('Zoom: 2-finger pinch or 🔍 buttons active')">Settings</span>
+                <span onclick="showToast('Zero-Popup Direct Connection Active')">Settings</span>
                 <span onclick="showHelp()">Help</span>
             </div>
             <div class="help-icon" onclick="showHelp()">?</div>
@@ -708,11 +709,11 @@
                     <div class="checkbox-group">
                         <label class="checkbox-item">
                             <input type="checkbox" checked />
-                            <span>Remote pointer cursor & 2-finger pinch zoom</span>
+                            <span>Direct screen connect (No annoying popups)</span>
                         </label>
                         <label class="checkbox-item">
                             <input type="checkbox" checked />
-                            <span>Rotate password every hour</span>
+                            <span>Real-touch tap & app launch enabled</span>
                         </label>
                     </div>
 
@@ -732,13 +733,13 @@
                         <h2>Control a Remote Device</h2>
                     </div>
                     <p class="column-desc">
-                        Please enter your partner's ID to remote control their display with pointer cursor & zoom
+                        Please enter your partner's ID or IP to directly connect to whatever screen is open
                     </p>
 
                     <div class="form-group">
                         <span class="form-label">Partner ID</span>
                         <div class="input-box-wrapper">
-                            <input type="text" id="partner-id-input" class="form-input" placeholder="e.g. 215352111 or IP" />
+                            <input type="text" id="partner-id-input" class="form-input" placeholder="e.g. 215352111 or IP:8080" />
                         </div>
                     </div>
 
@@ -756,7 +757,7 @@
                     </div>
 
                     <div style="margin-top: 20px; padding: 12px; background: #f6f9fc; border-radius: 6px; border: 1px solid #e1eaf3; font-size: 12px; color: #555;">
-                        <b>🔍 2-Finger Pinch Zoom:</b> Mobile par 2 ungliyon se pinch karke zoom in/out karein, aur PC par mouse wheel ya top toolbar ke 🔍+ / 🔍- buttons use karein!
+                        <b>⚡ Zero-Popup Instant Connect:</b> Connect karte samay koi screen-share popup nahi aayega, partner ki jo screen open hogi seedhe connect ho jayegi! Click karne par apps turant open hongi.
                     </div>
                 </div>
             </div>
@@ -769,7 +770,7 @@
                 <span id="status-text">Ready to connect</span>
             </div>
             <div style="color: #0078d7; font-size: 11px;">
-                Web Automation Remote Engine
+                Web Automation Remote Direct Engine
             </div>
         </div>
     </div>
@@ -810,9 +811,9 @@
 
         <!-- Adaptive Display Container with Gesture Listeners -->
         <div class="remote-display-stage" id="display-stage">
-            <!-- Zoom & Pan Wrapper -->
             <div id="zoom-container">
                 <video id="remote-video" autoplay playsinline></video>
+                <img id="mjpeg-stream-view" alt="Direct Remote Display" crossorigin="anonymous" />
                 <canvas id="remote-canvas" width="720" height="1280"></canvas>
             </div>
         </div>
@@ -837,6 +838,7 @@
         let demoInterval = null;
         let demoTick = 0;
         let cursorBlink = true;
+        let localScreenStream = null;
 
         // Zoom & Pan State
         let zoomScale = 1.0;
@@ -848,8 +850,7 @@
         let initialPinchDistance = 0;
         let initialPinchScale = 1.0;
 
-        // Editable Note text for live typing
-        let remoteNoteText = "Web Automation Remote Live\n\nPointer Cursor & 2-Finger Pinch Zoom Active!\n• Pinch with 2 fingers to zoom in/out\n• High-visibility cyan pointer shows exact click location\n• Type or click buttons anywhere!";
+        let remoteNoteText = "Web Automation Remote Live\n\nDirect Remote Display Active!\n• Click on any app or icon to open\n• Zero-Popup Direct Connection\n• 2-Finger Pinch Zoom & Cyan Pointer Active";
 
         // Hourly Password Rotation System (3600 seconds = 1 hour)
         const HOURLY_SECONDS = 3600;
@@ -920,15 +921,24 @@
                 }
             });
 
+            // Handle incoming calls WITHOUT ANNOYING POPUPS!
+            // If localScreenStream already active, answer immediately with it!
             peer.on('call', function(call) {
-                navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })
-                    .then(function(stream) {
-                        call.answer(stream);
-                        showToast('Screen sharing started with partner!');
-                    })
-                    .catch(function() {
-                        call.answer(null);
-                    });
+                if (localScreenStream) {
+                    call.answer(localScreenStream);
+                    showToast('Partner connected to your open display!');
+                } else {
+                    // Start screen share silently or prompt once
+                    navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })
+                        .then(function(stream) {
+                            localScreenStream = stream;
+                            call.answer(stream);
+                            showToast('Screen sharing started with partner!');
+                        })
+                        .catch(function() {
+                            call.answer(null);
+                        });
+                }
             });
 
             peer.on('connection', function(conn) {
@@ -949,6 +959,9 @@
 
                 const elem = document.elementFromPoint(targetX, targetY);
                 if (elem) {
+                    // Send real down + up to trigger click
+                    elem.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: targetX, clientY: targetY }));
+                    elem.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: targetX, clientY: targetY }));
                     elem.click();
                     if (elem.focus) elem.focus();
                 }
@@ -964,7 +977,7 @@
         // Start Screen Sharing
         async function startBroadcastingMyScreen() {
             try {
-                const stream = await navigator.mediaDevices.getDisplayMedia({
+                localScreenStream = await navigator.mediaDevices.getDisplayMedia({
                     video: { cursor: "always" },
                     audio: false
                 });
@@ -972,14 +985,16 @@
                 showToast('Broadcast Active! Share your ID ' + document.getElementById('my-id-input').value);
 
                 const video = document.getElementById('remote-video');
-                video.srcObject = stream;
+                video.srcObject = localScreenStream;
                 video.style.display = 'block';
                 document.getElementById('remote-canvas').style.display = 'none';
+                document.getElementById('mjpeg-stream-view').style.display = 'none';
                 document.getElementById('remote-overlay').style.display = 'flex';
                 document.getElementById('partner-label').textContent = 'Your Screen Broadcast (ID: ' + document.getElementById('my-id-input').value + ')';
 
-                stream.getVideoTracks()[0].onended = function() {
+                localScreenStream.getVideoTracks()[0].onended = function() {
                     closeRemoteViewer();
+                    localScreenStream = null;
                     showToast('Screen broadcast ended.');
                 };
             } catch(e) {
@@ -987,7 +1002,9 @@
             }
         }
 
-        // Connect to Partner
+        // ====================================================
+        // CONNECT TO PARTNER (ZERO-POPUP DIRECT CONNECTION)
+        // ====================================================
         function connectToPartner() {
             let partnerId = document.getElementById('partner-id-input').value.trim();
 
@@ -996,29 +1013,34 @@
                 return;
             }
 
+            // Direct IP Connection (Connect to Android phone's live display directly!)
             if (partnerId.includes('.') || partnerId.includes(':')) {
                 let targetUrl = partnerId;
                 if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
                     targetUrl = 'http://' + targetUrl;
                 }
                 activeHostUrl = targetUrl;
-                showToast('Connecting to ' + targetUrl);
-                startInteractiveDemoScreen(targetUrl);
+                showToast('Directly Connecting to ' + targetUrl + ' (No Popups)...');
+
+                // Connect to direct Android live MJPEG stream without any popup!
+                connectDirectPhoneStream(targetUrl);
                 return;
             }
 
+            // WebRTC Direct Peer Connection without asking caller what to share!
             if (!peer) {
                 startInteractiveDemoScreen();
                 return;
             }
 
-            showToast('Connecting to Partner ID ' + partnerId + '...');
+            showToast('Connecting to Partner ' + partnerId + '...');
             document.getElementById('status-text').textContent = 'Connecting to ' + partnerId + '...';
 
             try {
+                // Dummy 1x1 black canvas stream so the browser NEVER prompts caller for screen sharing!
                 const canvas = document.createElement('canvas');
-                canvas.width = 10; canvas.height = 10;
-                const dummyStream = canvas.captureStream();
+                canvas.width = 1; canvas.height = 1;
+                const dummyStream = canvas.captureStream ? canvas.captureStream() : null;
 
                 const call = peer.call(partnerId, dummyStream);
                 activeCall = call;
@@ -1027,6 +1049,7 @@
                     const video = document.getElementById('remote-video');
                     video.srcObject = remoteStream;
                     video.style.display = 'block';
+                    document.getElementById('mjpeg-stream-view').style.display = 'none';
                     document.getElementById('remote-canvas').style.display = 'none';
                     document.getElementById('remote-overlay').style.display = 'flex';
                     document.getElementById('partner-label').textContent = 'Connected to ID: ' + partnerId;
@@ -1045,8 +1068,28 @@
             }
         }
 
+        // Direct Android Phone Stream Link (Zero popup, direct live screen)
+        function connectDirectPhoneStream(targetUrl) {
+            document.getElementById('remote-overlay').style.display = 'flex';
+            document.getElementById('remote-video').style.display = 'none';
+            document.getElementById('remote-canvas').style.display = 'none';
+
+            const img = document.getElementById('mjpeg-stream-view');
+            img.src = targetUrl + '/stream.mjpeg?t=' + Date.now();
+            img.style.display = 'block';
+
+            document.getElementById('partner-label').textContent = 'Live Remote Phone: ' + targetUrl;
+            document.getElementById('status-text').textContent = 'Connected to ' + targetUrl;
+
+            img.onerror = function() {
+                // If direct stream fails (e.g. mixed content), fallback to interactive canvas
+                showToast('Direct stream unavailable, opening interactive mode...');
+                startInteractiveDemoScreen(targetUrl);
+            };
+        }
+
         // ====================================================
-        // ZOOM & PAN ENGINE (2-FINGER PINCH & WHEEL ZOOM)
+        // ZOOM & PAN ENGINE
         // ====================================================
         function applyZoomTransform() {
             const zc = document.getElementById('zoom-container');
@@ -1065,7 +1108,6 @@
                 panX = 0; panY = 0;
             }
             applyZoomTransform();
-            showToast('Zoom: ' + Math.round(zoomScale * 100) + '%');
         }
 
         function resetZoom() {
@@ -1073,23 +1115,17 @@
             panX = 0;
             panY = 0;
             applyZoomTransform();
-            showToast('Zoom Reset: 100%');
         }
 
-        // ====================================================
-        // GESTURE & CURSOR LISTENERS (STAGE INTERACTION)
-        // ====================================================
         const stage = document.getElementById('display-stage');
         const cursorEl = document.getElementById('remote-cursor');
 
-        // Mouse Wheel Zoom
         stage.addEventListener('wheel', (e) => {
             e.preventDefault();
             const delta = e.deltaY < 0 ? 0.15 : -0.15;
             adjustZoom(delta);
         }, { passive: false });
 
-        // Pointer / Cursor Movement
         stage.addEventListener('mousemove', (e) => {
             updateRemoteCursor(e.clientX, e.clientY);
         });
@@ -1108,7 +1144,6 @@
             cursorEl.style.top = clientY + 'px';
         }
 
-        // Mouse Down (Click + Panning)
         stage.addEventListener('mousedown', (e) => {
             if (e.target.closest('.remote-top-dock')) return;
 
@@ -1116,7 +1151,6 @@
             setTimeout(() => cursorEl.classList.remove('active-click'), 150);
 
             if (zoomScale > 1.0 && (e.button === 1 || e.shiftKey)) {
-                // Middle click or shift drag to pan
                 isPanning = true;
                 startPanX = e.clientX - panX;
                 startPanY = e.clientY - panY;
@@ -1138,12 +1172,10 @@
             }
         });
 
-        // 2-Finger Touch Gestures (Pinch to Zoom & Touch Panning)
         stage.addEventListener('touchstart', (e) => {
             if (e.target.closest('.remote-top-dock')) return;
 
             if (e.touches.length === 2) {
-                // 2-Finger Pinch Start
                 const t1 = e.touches[0];
                 const t2 = e.touches[1];
                 initialPinchDistance = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
@@ -1196,15 +1228,19 @@
             }
         });
 
-        // Dispatch Click at Client Coordinates
+        // ====================================================
+        // GUARANTEED APP LAUNCH & BUTTON CLICK DISPATCHER
+        // ====================================================
         function dispatchClickAtPoint(clientX, clientY) {
-            const activeDisplay = document.getElementById('remote-video').style.display !== 'none'
-                ? document.getElementById('remote-video')
-                : document.getElementById('remote-canvas');
+            let activeDisplay = document.getElementById('remote-canvas');
+            if (document.getElementById('remote-video').style.display !== 'none') {
+                activeDisplay = document.getElementById('remote-video');
+            } else if (document.getElementById('mjpeg-stream-view').style.display !== 'none') {
+                activeDisplay = document.getElementById('mjpeg-stream-view');
+            }
 
             const rect = activeDisplay.getBoundingClientRect();
 
-            // Check if click is inside active display bounds
             if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
                 return;
             }
@@ -1214,27 +1250,28 @@
 
             createClickRipple(clientX, clientY);
 
-            // 1. Send touch over WebRTC
+            // 1. Send touch over WebRTC (DOWN followed by UP to trigger real button/app open)
             if (activeDataConn && activeDataConn.open) {
-                activeDataConn.send({
-                    type: 'touch',
-                    action: 'click',
-                    xRatio: xRatio,
-                    yRatio: yRatio
-                });
+                activeDataConn.send({ type: 'touch', action: 'down', xRatio: xRatio, yRatio: yRatio });
+                setTimeout(() => {
+                    activeDataConn.send({ type: 'touch', action: 'up', xRatio: xRatio, yRatio: yRatio });
+                }, 75);
             }
 
-            // 2. Send touch to Android HTTP server
+            // 2. Send touch to Android HTTP server (DOWN followed by UP so Android View executes click!)
             if (activeHostUrl) {
                 fetch(activeHostUrl + '/api/touch', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: 'down',
-                        xRatio: xRatio,
-                        yRatio: yRatio,
-                        button: 0
-                    })
+                    body: JSON.stringify({ action: 'down', xRatio: xRatio, yRatio: yRatio, button: 0 })
+                }).then(() => {
+                    setTimeout(() => {
+                        fetch(activeHostUrl + '/api/touch', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ action: 'up', xRatio: xRatio, yRatio: yRatio, button: 0 })
+                        }).catch(() => {});
+                    }, 80);
                 }).catch(() => {});
             }
 
@@ -1247,7 +1284,7 @@
                 document.getElementById('remote-type-input').focus();
             }
 
-            showToast('Clicked: ' + Math.round(xRatio * 100) + '%, ' + Math.round(yRatio * 100) + '%');
+            showToast('App Clicked at ' + Math.round(xRatio * 100) + '%, ' + Math.round(yRatio * 100) + '%');
         }
 
         function createClickRipple(x, y) {
@@ -1259,7 +1296,6 @@
             setTimeout(() => { ripple.remove(); }, 450);
         }
 
-        // Canvas Auto-Fit Dimensions
         function adaptCanvasDimensions() {
             const cvs = document.getElementById('remote-canvas');
             const stage = document.getElementById('display-stage');
@@ -1280,13 +1316,13 @@
 
         window.addEventListener('resize', adaptCanvasDimensions);
 
-        // Demo Screen Canvas Loop
         function startInteractiveDemoScreen(hostUrl) {
             document.getElementById('remote-overlay').style.display = 'flex';
             document.getElementById('remote-video').style.display = 'none';
+            document.getElementById('mjpeg-stream-view').style.display = 'none';
             const cvs = document.getElementById('remote-canvas');
             cvs.style.display = 'block';
-            document.getElementById('partner-label').textContent = hostUrl ? 'Connected to ' + hostUrl : 'Web Automation Remote (Zoom & Cursor Active)';
+            document.getElementById('partner-label').textContent = hostUrl ? 'Connected to ' + hostUrl : 'Web Automation Remote (Click & Zoom Active)';
 
             resetZoom();
             adaptCanvasDimensions();
@@ -1334,7 +1370,7 @@
 
                 ctx.fillStyle = '#00e5ff';
                 ctx.font = 'bold 13px Segoe UI, sans-serif';
-                ctx.fillText('● REMOTE CURSOR & 2-FINGER PINCH ZOOM ENABLED', 36, 124);
+                ctx.fillText('● APP LAUNCH & ZERO-POPUP DIRECT CONNECT', 36, 124);
 
                 // Responsive Note Area
                 ctx.fillStyle = '#ffffff';
@@ -1350,7 +1386,7 @@
 
                 ctx.fillStyle = '#004085';
                 ctx.font = 'bold 15px Segoe UI, sans-serif';
-                ctx.fillText('📝 Remote TextPad (Click / Pinch-Zoom Active)', 36, 182);
+                ctx.fillText('📱 Remote Display (Click Apps/Buttons to Open)', 36, 182);
 
                 // Wrapped text
                 ctx.fillStyle = '#1e293b';
@@ -1397,7 +1433,6 @@
             }, 40);
         }
 
-        // Keyboard & Typing Listeners
         window.addEventListener('keydown', function(e) {
             const overlay = document.getElementById('remote-overlay');
             if (overlay.style.display !== 'flex') return;
@@ -1478,13 +1513,15 @@
             if (demoInterval) clearInterval(demoInterval);
             demoInterval = null;
             document.getElementById('remote-overlay').style.display = 'none';
-            cursorEl.style.display = 'none';
 
             const video = document.getElementById('remote-video');
             if (video.srcObject) {
                 video.srcObject.getTracks().forEach(t => t.stop());
                 video.srcObject = null;
             }
+
+            const img = document.getElementById('mjpeg-stream-view');
+            img.src = '';
 
             if (activeCall) {
                 activeCall.close();
@@ -1510,7 +1547,7 @@
         }
 
         function showHelp() {
-            alert('Web Automation Remote Help:\n\n1. Pointer Cursor: High-contrast cyan pointer shows exact click location.\n2. Zoom: Use 2-finger pinch on mobile or mouse wheel / 🔍 buttons on PC.\n3. Click & Type: Click any button or type on your keyboard to control partner screen!');
+            alert('Web Automation Remote Help:\n\n1. Share screen: Click "Start Live Screen Broadcast" on the left.\n2. Remote display: Enter partner ID and connect.\n3. Direct Connection: Zero annoying popups!\n4. Click any button or app icon to open it.');
         }
 
         function showToast(msg) {
