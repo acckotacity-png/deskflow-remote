@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Web Automation Remote | Live Display & Remote Access</title>
+    <title>Web Automation Remote | Live Display, Pinch-Zoom & Remote Cursor</title>
     <!-- PeerJS for WebRTC Direct Remote Screen Connection -->
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <style>
@@ -410,7 +410,7 @@
         }
 
         /* ====================================================
-           ADAPTIVE FULLSCREEN REMOTE VIEWER WITH INTERACTIVE CLICKS
+           FULLSCREEN REMOTE VIEWER WITH CURSOR & PINCH-ZOOM
            ==================================================== */
         .remote-viewer-overlay {
             position: fixed;
@@ -465,13 +465,13 @@
             border-radius: 6px;
             padding: 2px 6px;
             flex: 1;
-            min-width: 200px;
-            max-width: 440px;
+            min-width: 180px;
+            max-width: 380px;
         }
 
         .remote-typing-bar input {
             flex: 1;
-            height: 32px;
+            height: 30px;
             background: transparent;
             border: none;
             color: #ffffff;
@@ -514,6 +514,18 @@
             border-color: #bd2130;
         }
 
+        /* Zoom Badge */
+        .zoom-badge {
+            font-size: 11px;
+            font-weight: bold;
+            color: #00e5ff;
+            background: rgba(0, 229, 255, 0.15);
+            border: 1px solid #00e5ff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+
         /* Adaptive Display Container */
         .remote-display-stage {
             flex: 1;
@@ -525,8 +537,20 @@
             overflow: hidden;
             width: 100%;
             height: calc(100% - 50px);
-            touch-action: none;
-            cursor: pointer;
+            touch-action: none; /* Allows smooth pinch gestures without browser default scroll */
+            cursor: none; /* Hidden system cursor to show our high-contrast remote pointer */
+        }
+
+        /* Zoom & Pan Transform Container */
+        #zoom-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform-origin: center center;
+            transition: transform 0.05s ease-out;
+            will-change: transform;
+            max-width: 100%;
+            max-height: 100%;
         }
 
         #remote-video, #remote-canvas {
@@ -538,7 +562,26 @@
             display: block;
             margin: auto;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.9);
-            cursor: pointer;
+            pointer-events: auto;
+        }
+
+        /* ====================================================
+           HIGH-VISIBILITY REMOTE CURSOR POINTER
+           ==================================================== */
+        #remote-cursor {
+            position: fixed;
+            width: 26px;
+            height: 26px;
+            pointer-events: none;
+            z-index: 10005;
+            display: none;
+            transform: translate(0, 0);
+            filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.8));
+            transition: transform 0.04s ease-out;
+        }
+
+        #remote-cursor.active-click {
+            transform: scale(0.85);
         }
 
         /* Visual Click Ripple */
@@ -548,20 +591,20 @@
             border-radius: 50%;
             pointer-events: none;
             transform: translate(-50%, -50%);
-            animation: ripple-anim 0.5s ease-out forwards;
-            z-index: 10001;
+            animation: ripple-anim 0.45s ease-out forwards;
+            z-index: 10006;
         }
 
         @keyframes ripple-anim {
             0% {
-                width: 8px;
-                height: 8px;
+                width: 6px;
+                height: 6px;
                 opacity: 1;
                 border-color: #00e5ff;
             }
             100% {
-                width: 60px;
-                height: 60px;
+                width: 55px;
+                height: 55px;
                 opacity: 0;
                 border-color: #ff5722;
             }
@@ -606,7 +649,7 @@
         <div class="menu-bar">
             <div class="menu-items">
                 <span onclick="showToast('Web Automation Remote: Ready')">File</span>
-                <span onclick="showToast('Display: Click & Touch Enabled')">Settings</span>
+                <span onclick="showToast('Zoom: 2-finger pinch or 🔍 buttons active')">Settings</span>
                 <span onclick="showHelp()">Help</span>
             </div>
             <div class="help-icon" onclick="showHelp()">?</div>
@@ -620,7 +663,7 @@
                 <div class="strip-btn" title="Address Book" onclick="showToast('Address Book')">📇</div>
             </div>
 
-            <!-- Two Column Area (Responsive Grid) -->
+            <!-- Two Column Area -->
             <div class="content-area">
                 <!-- Left Column: Allow Remote Control -->
                 <div class="column">
@@ -665,7 +708,7 @@
                     <div class="checkbox-group">
                         <label class="checkbox-item">
                             <input type="checkbox" checked />
-                            <span>Remote click & app access enabled</span>
+                            <span>Remote pointer cursor & 2-finger pinch zoom</span>
                         </label>
                         <label class="checkbox-item">
                             <input type="checkbox" checked />
@@ -689,7 +732,7 @@
                         <h2>Control a Remote Device</h2>
                     </div>
                     <p class="column-desc">
-                        Please enter your partner's ID to remote control their display with live mouse clicks
+                        Please enter your partner's ID to remote control their display with pointer cursor & zoom
                     </p>
 
                     <div class="form-group">
@@ -713,7 +756,7 @@
                     </div>
 
                     <div style="margin-top: 20px; padding: 12px; background: #f6f9fc; border-radius: 6px; border: 1px solid #e1eaf3; font-size: 12px; color: #555;">
-                        <b>🖱️ Live Interactive Clicks:</b> Connecting allows clicking on buttons, icons, or apps on the remote display with real-time feedback!
+                        <b>🔍 2-Finger Pinch Zoom:</b> Mobile par 2 ungliyon se pinch karke zoom in/out karein, aur PC par mouse wheel ya top toolbar ke 🔍+ / 🔍- buttons use karein!
                     </div>
                 </div>
             </div>
@@ -731,7 +774,7 @@
         </div>
     </div>
 
-    <!-- Fullscreen Remote Screen Viewer Window With Interactive Clicks & Typing -->
+    <!-- Fullscreen Remote Screen Viewer Window With Pointer Cursor & Pinch-Zoom -->
     <div class="remote-viewer-overlay" id="remote-overlay" tabindex="0">
         <!-- Top Toolbar -->
         <div class="remote-top-dock">
@@ -740,13 +783,20 @@
                 <span style="color: #adb5bd; font-weight: normal;" id="partner-label">Connecting...</span>
             </div>
 
+            <!-- Zoom Controls & Badge -->
+            <div style="display: flex; align-items: center; gap: 4px;">
+                <button class="remote-btn" onclick="adjustZoom(-0.25)" title="Zoom Out">🔍−</button>
+                <span class="zoom-badge" id="zoom-level-text">100%</span>
+                <button class="remote-btn" onclick="adjustZoom(0.25)" title="Zoom In">🔍+</button>
+                <button class="remote-btn" onclick="resetZoom()" title="Reset Zoom">1:1</button>
+            </div>
+
             <!-- Remote Typing Bar -->
             <div class="remote-typing-bar">
                 <span>⌨️</span>
-                <input type="text" id="remote-type-input" placeholder="Type here to send to remote..." onkeydown="handleInputBarKey(event)" />
+                <input type="text" id="remote-type-input" placeholder="Type to send..." onkeydown="handleInputBarKey(event)" />
                 <button class="remote-btn btn-action" onclick="sendInputBarText()">Send</button>
                 <button class="remote-btn" onclick="sendRemoteBackspace()">⌫</button>
-                <button class="remote-btn" onclick="pasteClipboardToRemote()">📋 Paste</button>
             </div>
 
             <div class="remote-tools">
@@ -758,12 +808,21 @@
             </div>
         </div>
 
-        <!-- Adaptive Display Container with Click Handler -->
-        <div class="remote-display-stage" id="display-stage" onmousedown="handleDisplayClick(event)" ontouchstart="handleDisplayClick(event)">
-            <video id="remote-video" autoplay playsinline></video>
-            <canvas id="remote-canvas" width="720" height="1280"></canvas>
+        <!-- Adaptive Display Container with Gesture Listeners -->
+        <div class="remote-display-stage" id="display-stage">
+            <!-- Zoom & Pan Wrapper -->
+            <div id="zoom-container">
+                <video id="remote-video" autoplay playsinline></video>
+                <canvas id="remote-canvas" width="720" height="1280"></canvas>
+            </div>
         </div>
     </div>
+
+    <!-- High-Visibility Remote Pointer Cursor (SVG) -->
+    <svg id="remote-cursor" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 2L19 12L12 14L8 21L4 2Z" fill="#00e5ff" stroke="#000000" stroke-width="1.8" stroke-linejoin="round"/>
+        <circle cx="5" cy="4" r="2.5" fill="#ff5722"/>
+    </svg>
 
     <!-- Toast Notification -->
     <div class="toast-msg" id="toast-msg">Notification</div>
@@ -779,8 +838,18 @@
         let demoTick = 0;
         let cursorBlink = true;
 
+        // Zoom & Pan State
+        let zoomScale = 1.0;
+        let panX = 0;
+        let panY = 0;
+        let isPanning = false;
+        let startPanX = 0;
+        let startPanY = 0;
+        let initialPinchDistance = 0;
+        let initialPinchScale = 1.0;
+
         // Editable Note text for live typing
-        let remoteNoteText = "Web Automation Remote Live\n\nFull remote click & typing active.\nClick any button, app icon, or text area.\nEvery click sends real touch coordinates!";
+        let remoteNoteText = "Web Automation Remote Live\n\nPointer Cursor & 2-Finger Pinch Zoom Active!\n• Pinch with 2 fingers to zoom in/out\n• High-visibility cyan pointer shows exact click location\n• Type or click buttons anywhere!";
 
         // Hourly Password Rotation System (3600 seconds = 1 hour)
         const HOURLY_SECONDS = 3600;
@@ -841,7 +910,7 @@
                 document.getElementById('status-text').textContent = 'Ready to connect (ID: ' + id + ')';
             });
 
-            peer.on('error', function(err) {
+            peer.on('error', function() {
                 if (!myPeerId) {
                     peer = new Peer({ config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
                     peer.on('open', (id) => {
@@ -872,10 +941,8 @@
             console.error(e);
         }
 
-        // Handle incoming data when hosting / sharing screen
         function handleIncomingPeerData(data) {
             if (data.type === 'touch') {
-                // Partner clicked on our screen! Execute click on host browser
                 const targetX = data.xRatio * window.innerWidth;
                 const targetY = data.yRatio * window.innerHeight;
                 createClickRipple(targetX, targetY);
@@ -885,7 +952,8 @@
                     elem.click();
                     if (elem.focus) elem.focus();
                 }
-                showToast('Remote Click executed at ' + Math.round(data.xRatio*100) + '%, ' + Math.round(data.yRatio*100) + '%');
+            } else if (data.type === 'cursor') {
+                updateRemoteCursor(data.x, data.y);
             } else if (data.type === 'text') {
                 remoteNoteText += data.text;
             } else if (data.action === 'backspace') {
@@ -978,21 +1046,165 @@
         }
 
         // ====================================================
-        // INTERACTIVE CLICK DISPATCHER (CLICKS ON BUTTONS & APPS)
+        // ZOOM & PAN ENGINE (2-FINGER PINCH & WHEEL ZOOM)
         // ====================================================
-        function handleDisplayClick(e) {
-            // Ignore click if user clicked on the top toolbar
+        function applyZoomTransform() {
+            const zc = document.getElementById('zoom-container');
+            if (zc) {
+                zc.style.transform = `translate(${panX}px, ${panY}px) scale(${zoomScale})`;
+            }
+            const badge = document.getElementById('zoom-level-text');
+            if (badge) {
+                badge.textContent = Math.round(zoomScale * 100) + '%';
+            }
+        }
+
+        function adjustZoom(delta) {
+            zoomScale = Math.max(0.5, Math.min(4.0, zoomScale + delta));
+            if (zoomScale === 1.0) {
+                panX = 0; panY = 0;
+            }
+            applyZoomTransform();
+            showToast('Zoom: ' + Math.round(zoomScale * 100) + '%');
+        }
+
+        function resetZoom() {
+            zoomScale = 1.0;
+            panX = 0;
+            panY = 0;
+            applyZoomTransform();
+            showToast('Zoom Reset: 100%');
+        }
+
+        // ====================================================
+        // GESTURE & CURSOR LISTENERS (STAGE INTERACTION)
+        // ====================================================
+        const stage = document.getElementById('display-stage');
+        const cursorEl = document.getElementById('remote-cursor');
+
+        // Mouse Wheel Zoom
+        stage.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const delta = e.deltaY < 0 ? 0.15 : -0.15;
+            adjustZoom(delta);
+        }, { passive: false });
+
+        // Pointer / Cursor Movement
+        stage.addEventListener('mousemove', (e) => {
+            updateRemoteCursor(e.clientX, e.clientY);
+        });
+
+        stage.addEventListener('mouseleave', () => {
+            cursorEl.style.display = 'none';
+        });
+
+        stage.addEventListener('mouseenter', () => {
+            cursorEl.style.display = 'block';
+        });
+
+        function updateRemoteCursor(clientX, clientY) {
+            cursorEl.style.display = 'block';
+            cursorEl.style.left = clientX + 'px';
+            cursorEl.style.top = clientY + 'px';
+        }
+
+        // Mouse Down (Click + Panning)
+        stage.addEventListener('mousedown', (e) => {
             if (e.target.closest('.remote-top-dock')) return;
 
+            cursorEl.classList.add('active-click');
+            setTimeout(() => cursorEl.classList.remove('active-click'), 150);
+
+            if (zoomScale > 1.0 && (e.button === 1 || e.shiftKey)) {
+                // Middle click or shift drag to pan
+                isPanning = true;
+                startPanX = e.clientX - panX;
+                startPanY = e.clientY - panY;
+                return;
+            }
+
+            dispatchClickAtPoint(e.clientX, e.clientY);
+        });
+
+        window.addEventListener('mouseup', () => {
+            isPanning = false;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (isPanning) {
+                panX = e.clientX - startPanX;
+                panY = e.clientY - startPanY;
+                applyZoomTransform();
+            }
+        });
+
+        // 2-Finger Touch Gestures (Pinch to Zoom & Touch Panning)
+        stage.addEventListener('touchstart', (e) => {
+            if (e.target.closest('.remote-top-dock')) return;
+
+            if (e.touches.length === 2) {
+                // 2-Finger Pinch Start
+                const t1 = e.touches[0];
+                const t2 = e.touches[1];
+                initialPinchDistance = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+                initialPinchScale = zoomScale;
+            } else if (e.touches.length === 1) {
+                const t = e.touches[0];
+                updateRemoteCursor(t.clientX, t.clientY);
+
+                if (zoomScale > 1.0) {
+                    isPanning = true;
+                    startPanX = t.clientX - panX;
+                    startPanY = t.clientY - panY;
+                }
+            }
+        }, { passive: false });
+
+        stage.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                const t1 = e.touches[0];
+                const t2 = e.touches[1];
+                const currentDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+
+                if (initialPinchDistance > 0) {
+                    const factor = currentDist / initialPinchDistance;
+                    zoomScale = Math.max(0.5, Math.min(4.0, initialPinchScale * factor));
+                    applyZoomTransform();
+                }
+            } else if (e.touches.length === 1) {
+                const t = e.touches[0];
+                updateRemoteCursor(t.clientX, t.clientY);
+
+                if (isPanning && zoomScale > 1.0) {
+                    panX = t.clientX - startPanX;
+                    panY = t.clientY - startPanY;
+                    applyZoomTransform();
+                }
+            }
+        }, { passive: false });
+
+        stage.addEventListener('touchend', (e) => {
+            if (e.touches.length === 0) {
+                isPanning = false;
+                initialPinchDistance = 0;
+
+                if (e.changedTouches.length === 1 && zoomScale === 1.0) {
+                    const t = e.changedTouches[0];
+                    dispatchClickAtPoint(t.clientX, t.clientY);
+                }
+            }
+        });
+
+        // Dispatch Click at Client Coordinates
+        function dispatchClickAtPoint(clientX, clientY) {
             const activeDisplay = document.getElementById('remote-video').style.display !== 'none'
                 ? document.getElementById('remote-video')
                 : document.getElementById('remote-canvas');
 
             const rect = activeDisplay.getBoundingClientRect();
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
-            // Ensure click is inside the actual display element
+            // Check if click is inside active display bounds
             if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
                 return;
             }
@@ -1000,10 +1212,9 @@
             const xRatio = (clientX - rect.left) / rect.width;
             const yRatio = (clientY - rect.top) / rect.height;
 
-            // Visual animated ripple
             createClickRipple(clientX, clientY);
 
-            // 1. Send touch to peer over WebRTC
+            // 1. Send touch over WebRTC
             if (activeDataConn && activeDataConn.open) {
                 activeDataConn.send({
                     type: 'touch',
@@ -1027,9 +1238,8 @@
                 }).catch(() => {});
             }
 
-            // 3. Demo simulation: check app clicks
+            // 3. Demo navigation
             if (yRatio > 0.88) {
-                // Clicked bottom navigation bar
                 if (xRatio < 0.33) sendRemoteKey('back');
                 else if (xRatio < 0.66) sendRemoteKey('home');
                 else sendRemoteKey('recents');
@@ -1037,17 +1247,16 @@
                 document.getElementById('remote-type-input').focus();
             }
 
-            showToast('Touch Click Sent: ' + Math.round(xRatio * 100) + '%, ' + Math.round(yRatio * 100) + '%');
+            showToast('Clicked: ' + Math.round(xRatio * 100) + '%, ' + Math.round(yRatio * 100) + '%');
         }
 
-        // Create visual touch ripple under click
         function createClickRipple(x, y) {
             const ripple = document.createElement('div');
             ripple.className = 'click-ripple';
             ripple.style.left = x + 'px';
             ripple.style.top = y + 'px';
             document.body.appendChild(ripple);
-            setTimeout(() => { ripple.remove(); }, 500);
+            setTimeout(() => { ripple.remove(); }, 450);
         }
 
         // Canvas Auto-Fit Dimensions
@@ -1077,8 +1286,9 @@
             document.getElementById('remote-video').style.display = 'none';
             const cvs = document.getElementById('remote-canvas');
             cvs.style.display = 'block';
-            document.getElementById('partner-label').textContent = hostUrl ? 'Connected to ' + hostUrl : 'Web Automation Remote (Interactive Click Active)';
+            document.getElementById('partner-label').textContent = hostUrl ? 'Connected to ' + hostUrl : 'Web Automation Remote (Zoom & Cursor Active)';
 
+            resetZoom();
             adaptCanvasDimensions();
 
             const ctx = cvs.getContext('2d');
@@ -1122,9 +1332,9 @@
                 ctx.font = 'bold 20px Segoe UI, sans-serif';
                 ctx.fillText('Web Automation Remote', 36, 98);
 
-                ctx.fillStyle = '#28a745';
+                ctx.fillStyle = '#00e5ff';
                 ctx.font = 'bold 13px Segoe UI, sans-serif';
-                ctx.fillText('● CLICK & TOUCH DISPATCH ACTIVE', 36, 124);
+                ctx.fillText('● REMOTE CURSOR & 2-FINGER PINCH ZOOM ENABLED', 36, 124);
 
                 // Responsive Note Area
                 ctx.fillStyle = '#ffffff';
@@ -1140,7 +1350,7 @@
 
                 ctx.fillStyle = '#004085';
                 ctx.font = 'bold 15px Segoe UI, sans-serif';
-                ctx.fillText('📝 Remote TextPad (Click Anywhere to Focus/Click)', 36, 182);
+                ctx.fillText('📝 Remote TextPad (Click / Pinch-Zoom Active)', 36, 182);
 
                 // Wrapped text
                 ctx.fillStyle = '#1e293b';
@@ -1250,19 +1460,6 @@
             showToast('Backspace ⌫');
         }
 
-        async function pasteClipboardToRemote() {
-            try {
-                const text = await navigator.clipboard.readText();
-                if (text) {
-                    dispatchCharToRemote(text);
-                    showToast('Pasted clipboard text to remote!');
-                }
-            } catch(e) {
-                const text = prompt('Paste your text here:');
-                if (text) dispatchCharToRemote(text);
-            }
-        }
-
         function sendRemoteKey(keyName) {
             showToast('Remote: ' + keyName.toUpperCase());
             if (activeDataConn && activeDataConn.open) {
@@ -1281,6 +1478,7 @@
             if (demoInterval) clearInterval(demoInterval);
             demoInterval = null;
             document.getElementById('remote-overlay').style.display = 'none';
+            cursorEl.style.display = 'none';
 
             const video = document.getElementById('remote-video');
             if (video.srcObject) {
@@ -1312,7 +1510,7 @@
         }
 
         function showHelp() {
-            alert('Web Automation Remote Help:\n\n1. Share screen: Click "Start Live Screen Broadcast" on the left.\n2. Remote display: Enter partner ID and connect.\n3. Click anywhere on the remote display to click buttons, icons, or open apps on partner device!');
+            alert('Web Automation Remote Help:\n\n1. Pointer Cursor: High-contrast cyan pointer shows exact click location.\n2. Zoom: Use 2-finger pinch on mobile or mouse wheel / 🔍 buttons on PC.\n3. Click & Type: Click any button or type on your keyboard to control partner screen!');
         }
 
         function showToast(msg) {
