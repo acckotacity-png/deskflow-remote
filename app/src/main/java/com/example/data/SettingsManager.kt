@@ -51,11 +51,13 @@ class SettingsManager(context: Context) {
     }
 
     private fun getOrGeneratePin(): String {
+        val lastTime = prefs.getLong("pin_generated_at", 0L)
+        val now = System.currentTimeMillis()
         var pin = prefs.getString("pin_code", null)
-        if (pin == null) {
+        if (pin == null || now - lastTime > 3600000L) { // 1 hour
             val r = Random()
             pin = String.format("%04d", r.nextInt(10000))
-            prefs.edit().putString("pin_code", pin).apply()
+            prefs.edit().putString("pin_code", pin).putLong("pin_generated_at", now).apply()
         }
         return pin
     }
@@ -63,9 +65,18 @@ class SettingsManager(context: Context) {
     fun regeneratePin(): String {
         val r = Random()
         val newPin = String.format("%04d", r.nextInt(10000))
-        prefs.edit().putString("pin_code", newPin).apply()
+        prefs.edit().putString("pin_code", newPin).putLong("pin_generated_at", System.currentTimeMillis()).apply()
         _pinCode.value = newPin
         return newPin
+    }
+
+    fun checkAndRotateHourlyPin(): String {
+        val lastTime = prefs.getLong("pin_generated_at", 0L)
+        val now = System.currentTimeMillis()
+        if (now - lastTime > 3600000L) {
+            return regeneratePin()
+        }
+        return _pinCode.value
     }
 
     fun setServerPort(port: Int) {

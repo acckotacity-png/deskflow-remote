@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "DeskFlow"
+rootProject.name = "Web Automation Remote"
 
 include(":app")

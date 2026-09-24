@@ -2,44 +2,56 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UltraViewer Web - Remote Desktop & Text Typing</title>
-    <!-- PeerJS for WebRTC Peer-to-Peer Remote Screen Streaming -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Web Automation Remote | Live Display & Remote Access</title>
+    <!-- PeerJS for WebRTC Direct Remote Screen Connection -->
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <style>
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            user-select: none;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
-            background-color: #3b4252;
+            background-color: #2e3440;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 16px;
+            padding: 12px;
+            color: #222;
         }
 
-        /* UltraViewer Desktop Window Frame */
+        /* Responsive Window Frame (Fits PC and Mobile) */
         .window-frame {
-            width: 840px;
+            width: 860px;
             max-width: 100%;
             background: #ffffff;
             border-radius: 8px;
-            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
             border: 1px solid #7d96b8;
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            transition: all 0.2s ease;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 4px;
+            }
+            .window-frame {
+                border-radius: 4px;
+                border: none;
+            }
         }
 
         /* Title Bar */
         .title-bar {
-            height: 38px;
+            height: 40px;
             background: #ffffff;
             display: flex;
             align-items: center;
@@ -53,15 +65,15 @@
             align-items: center;
             gap: 8px;
             font-size: 13px;
-            font-weight: 600;
-            color: #333333;
+            font-weight: 700;
+            color: #1a3254;
         }
 
         .app-icon {
-            width: 20px;
-            height: 20px;
+            width: 22px;
+            height: 22px;
             background: #0078d7;
-            border-radius: 50%;
+            border-radius: 4px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -75,11 +87,12 @@
             gap: 12px;
             color: #666;
             font-size: 12px;
+            cursor: pointer;
         }
 
         /* Menu Bar */
         .menu-bar {
-            height: 42px;
+            height: 40px;
             background: linear-gradient(180deg, #99b9e5 0%, #82a5d4 100%);
             display: flex;
             align-items: center;
@@ -87,20 +100,16 @@
             padding: 0 16px;
             color: #1a3254;
             font-size: 13px;
-            font-weight: 500;
+            font-weight: 600;
         }
 
         .menu-items {
             display: flex;
-            gap: 24px;
+            gap: 20px;
         }
 
         .menu-items span {
             cursor: pointer;
-        }
-
-        .menu-items span:hover {
-            color: #000;
         }
 
         .help-icon {
@@ -117,27 +126,33 @@
             cursor: pointer;
         }
 
-        /* Main Body Split Panel */
+        /* Main Container */
         .main-container {
             display: flex;
-            min-height: 440px;
+            min-height: 420px;
         }
 
-        /* Left Action Strip */
+        /* Side Strip (Hidden on small mobile screens to maximize space) */
         .side-strip {
-            width: 52px;
+            width: 48px;
             background: #f0f4f9;
             border-right: 1px solid #d4deec;
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding-top: 16px;
-            gap: 12px;
+            padding-top: 14px;
+            gap: 10px;
+        }
+
+        @media (max-width: 650px) {
+            .side-strip {
+                display: none;
+            }
         }
 
         .strip-btn {
-            width: 38px;
-            height: 38px;
+            width: 36px;
+            height: 36px;
             background: #ffffff;
             border: 1px solid #b8c9dd;
             border-radius: 4px;
@@ -145,8 +160,7 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-            font-size: 18px;
+            font-size: 16px;
         }
 
         .strip-btn.active {
@@ -160,19 +174,20 @@
             flex: 1;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            padding: 24px 28px;
-            gap: 32px;
+            padding: 20px 24px;
+            gap: 28px;
             background: #ffffff;
         }
 
-        @media (max-width: 680px) {
+        /* Responsive Breakpoint for Mobile Phones */
+        @media (max-width: 768px) {
             .content-area {
                 grid-template-columns: 1fr;
-                gap: 20px;
+                gap: 18px;
+                padding: 16px;
             }
         }
 
-        /* Column Styles */
         .column {
             display: flex;
             flex-direction: column;
@@ -181,26 +196,25 @@
         .column-header {
             display: flex;
             align-items: center;
-            gap: 10px;
-            margin-bottom: 14px;
+            gap: 8px;
+            margin-bottom: 10px;
         }
 
         .column-header h2 {
-            font-size: 17px;
+            font-size: 16px;
             color: #0078d7;
-            font-weight: 600;
+            font-weight: 700;
         }
 
         .column-icon {
-            font-size: 26px;
+            font-size: 22px;
         }
 
         .column-desc {
             font-size: 12px;
             color: #555555;
             line-height: 1.5;
-            margin-bottom: 22px;
-            min-height: 36px;
+            margin-bottom: 18px;
         }
 
         /* Form Controls */
@@ -210,11 +224,27 @@
             margin-bottom: 14px;
         }
 
+        @media (max-width: 480px) {
+            .form-group {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 4px;
+            }
+            .form-label {
+                width: 100% !important;
+                margin-bottom: 2px;
+            }
+            .input-box-wrapper {
+                width: 100%;
+            }
+        }
+
         .form-label {
-            width: 90px;
+            width: 85px;
             font-size: 13px;
             color: #222222;
-            font-weight: 500;
+            font-weight: 600;
+            flex-shrink: 0;
         }
 
         .input-box-wrapper {
@@ -225,10 +255,10 @@
         }
 
         .form-input {
-            flex: 1;
-            height: 32px;
+            width: 100%;
+            height: 36px;
             border: 1px solid #7f9db9;
-            border-radius: 2px;
+            border-radius: 4px;
             padding: 0 10px;
             font-size: 15px;
             font-family: Consolas, 'Courier New', monospace;
@@ -236,44 +266,59 @@
             color: #004085;
             outline: none;
             background: #ffffff;
+            transition: border-color 0.2s;
         }
 
         .form-input:focus {
             border-color: #0078d7;
-            box-shadow: 0 0 4px rgba(0, 120, 215, 0.4);
+            box-shadow: 0 0 5px rgba(0, 120, 215, 0.4);
         }
 
         .icon-btn {
             background: #f0f4f9;
             border: 1px solid #b8c9dd;
-            border-radius: 3px;
-            width: 28px;
-            height: 28px;
+            border-radius: 4px;
+            width: 32px;
+            height: 36px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             font-size: 14px;
+            flex-shrink: 0;
         }
 
         .icon-btn:hover {
             background: #e2ecf7;
         }
 
-        /* Divider */
+        /* Rotation Info Pill */
+        .rotation-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: #0078d7;
+            background: #eef6ff;
+            border: 1px solid #c7e0f9;
+            padding: 3px 8px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
         .divider {
             height: 1px;
             background: #d4deec;
-            margin: 20px 0 16px 0;
+            margin: 16px 0 14px 0;
         }
 
-        /* Unattended Access */
         .section-subtitle {
             text-align: center;
-            font-size: 14px;
-            font-weight: 600;
+            font-size: 13px;
+            font-weight: 700;
             color: #333333;
-            margin-bottom: 14px;
+            margin-bottom: 10px;
         }
 
         .checkbox-group {
@@ -282,7 +327,7 @@
             gap: 8px;
             font-size: 12px;
             color: #444444;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
         }
 
         .checkbox-item {
@@ -292,60 +337,46 @@
             cursor: pointer;
         }
 
-        /* Connect Button */
-        .connect-btn-container {
-            margin-top: 24px;
-            display: flex;
-            justify-content: flex-end;
-        }
-
+        /* Buttons */
         .btn-connect {
             background: linear-gradient(180deg, #f7fafd 0%, #d8e5f5 100%);
             border: 1px solid #7f9db9;
             border-radius: 4px;
-            padding: 8px 24px;
+            padding: 10px 24px;
             font-size: 14px;
-            font-weight: 600;
+            font-weight: 700;
             color: #1a3254;
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 10px;
+            justify-content: center;
+            gap: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-            transition: all 0.15s;
+            width: 100%;
+            height: 42px;
         }
 
         .btn-connect:hover {
             background: linear-gradient(180deg, #e9f2fc 0%, #c4daee 100%);
             border-color: #0078d7;
-            color: #000;
         }
 
-        .btn-connect:active {
-            transform: translateY(1px);
-        }
-
-        .btn-connect .arrow {
-            font-size: 16px;
-            color: #0078d7;
-        }
-
-        /* Broadcast Button on Left Column */
         .btn-share-screen {
             background: linear-gradient(180deg, #008bf8 0%, #006ec4 100%);
             border: 1px solid #005a9e;
             color: #fff;
             border-radius: 4px;
-            padding: 8px 16px;
+            padding: 10px 16px;
             font-size: 13px;
-            font-weight: 600;
+            font-weight: 700;
             cursor: pointer;
-            margin-top: 8px;
+            margin-top: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
-            box-shadow: 0 2px 5px rgba(0, 120, 215, 0.3);
+            width: 100%;
+            height: 42px;
         }
 
         .btn-share-screen:hover {
@@ -354,7 +385,7 @@
 
         /* Status Bar */
         .status-bar {
-            height: 32px;
+            height: 34px;
             background: #f0f4f9;
             border-top: 1px solid #d4deec;
             display: flex;
@@ -380,7 +411,7 @@
         }
 
         /* ====================================================
-           FULLSCREEN REMOTE DESKTOP VIEWER & TYPING SUITE
+           ADAPTIVE FULLSCREEN REMOTE VIEWER (MOBILE & PC FIT)
            ==================================================== */
         .remote-viewer-overlay {
             position: fixed;
@@ -389,65 +420,73 @@
             z-index: 10000;
             display: none;
             flex-direction: column;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
         }
 
-        /* Top Remote Control Toolbar */
+        /* Remote Top Dock */
         .remote-top-dock {
-            height: 52px;
-            background: rgba(20, 30, 48, 0.98);
+            min-height: 50px;
+            background: rgba(15, 23, 42, 0.98);
             border-bottom: 1px solid rgba(0, 120, 215, 0.4);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 16px;
+            padding: 4px 12px;
             color: #fff;
             z-index: 100;
-            gap: 12px;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        @media (max-width: 600px) {
+            .remote-top-dock {
+                padding: 6px 8px;
+                gap: 6px;
+            }
         }
 
         .remote-status-badge {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             font-size: 12px;
             font-weight: bold;
             white-space: nowrap;
         }
 
-        /* Remote Typing Bar (NEW!) */
+        /* Responsive Typing Input Bar */
         .remote-typing-bar {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
             background: rgba(0, 0, 0, 0.6);
             border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 6px;
             padding: 2px 6px;
             flex: 1;
-            max-width: 460px;
+            min-width: 200px;
+            max-width: 440px;
         }
 
         .remote-typing-bar input {
             flex: 1;
-            height: 30px;
+            height: 32px;
             background: transparent;
             border: none;
             color: #ffffff;
             font-size: 13px;
             outline: none;
             padding: 0 6px;
-            user-select: text;
-        }
-
-        .remote-typing-bar input::placeholder {
-            color: #8faed9;
+            min-width: 60px;
         }
 
         .remote-tools {
             display: flex;
             align-items: center;
-            gap: 6px;
-            white-space: nowrap;
+            gap: 4px;
+            overflow-x: auto;
         }
 
         .remote-btn {
@@ -455,16 +494,15 @@
             border: 1px solid rgba(255, 255, 255, 0.25);
             color: #fff;
             border-radius: 4px;
-            padding: 6px 12px;
+            padding: 6px 10px;
             font-size: 12px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.15s;
+            white-space: nowrap;
         }
 
         .remote-btn:hover {
             background: rgba(0, 120, 215, 0.8);
-            border-color: #0078d7;
         }
 
         .remote-btn.btn-action {
@@ -477,88 +515,59 @@
             border-color: #bd2130;
         }
 
-        /* Display Stage */
+        /* Adaptive Display Container (Auto-fits Mobile & PC without tearing) */
         .remote-display-stage {
             flex: 1;
             position: relative;
-            background: #0d1117;
+            background: #000000;
             display: flex;
             align-items: center;
             justify-content: center;
             overflow: hidden;
-            outline: none;
+            width: 100%;
+            height: calc(100% - 50px);
+            touch-action: none;
         }
 
-        #remote-video {
-            max-width: 100vw;
-            max-height: calc(100vh - 52px);
+        /* Auto-fit Scalable Screen */
+        #remote-video, #remote-canvas {
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
             object-fit: contain;
-            cursor: crosshair;
-        }
-
-        #remote-canvas {
-            max-width: 100vw;
-            max-height: calc(100vh - 52px);
-            object-fit: contain;
-            cursor: crosshair;
-            display: none;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-        }
-
-        /* Floating Keyboard Typing Helper Banner */
-        .typing-helper-banner {
-            position: absolute;
-            bottom: 12px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(15, 23, 42, 0.9);
-            border: 1px solid rgba(0, 120, 215, 0.5);
-            border-radius: 20px;
-            padding: 6px 16px;
-            font-size: 12px;
-            color: #94a3b8;
-            pointer-events: none;
-            z-index: 50;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .typing-key-badge {
-            background: #0078d7;
-            color: #fff;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: bold;
-            font-family: monospace;
+            display: block;
+            margin: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.9);
         }
 
         /* Toast Message */
         .toast-msg {
             position: fixed;
-            bottom: 24px;
-            right: 24px;
+            bottom: 20px;
+            right: 20px;
             background: #212529;
             color: #fff;
-            padding: 12px 20px;
+            padding: 10px 18px;
             border-radius: 6px;
             box-shadow: 0 6px 20px rgba(0,0,0,0.3);
             border-left: 4px solid #0078d7;
             font-size: 13px;
             display: none;
             z-index: 20000;
+            max-width: 90vw;
         }
     </style>
 </head>
 <body>
 
-    <!-- Main UltraViewer Window -->
+    <!-- Main Window Frame -->
     <div class="window-frame">
         <!-- Title Bar -->
         <div class="title-bar">
             <div class="title-left">
-                <div class="app-icon">U</div>
-                <span>UltraViewer 6.6 - Remote Control & Typing</span>
+                <div class="app-icon">W</div>
+                <span>Web Automation Remote</span>
             </div>
             <div class="window-controls">
                 <span>🗕</span>
@@ -570,22 +579,22 @@
         <!-- Menu Bar -->
         <div class="menu-bar">
             <div class="menu-items">
-                <span onclick="showToast('File menu: Quick Connect & Options')">File</span>
-                <span onclick="showToast('Settings: Screen Quality & Unattended Access')">Settings</span>
-                <span onclick="showToast('Help: Enter Partner ID and click Connect')">Help</span>
+                <span onclick="showToast('Web Automation Remote: Ready')">File</span>
+                <span onclick="showToast('Display: Auto Mobile & PC Fit Enabled')">Settings</span>
+                <span onclick="showHelp()">Help</span>
             </div>
             <div class="help-icon" onclick="showHelp()">?</div>
         </div>
 
-        <!-- Main Content Split -->
+        <!-- Main Body -->
         <div class="main-container">
-            <!-- Left Tool Strip -->
+            <!-- Left Side Strip -->
             <div class="side-strip">
                 <div class="strip-btn active" title="Remote Control">⮂</div>
-                <div class="strip-btn" title="Address Book" onclick="showToast('Address Book: Save recent devices')">📇</div>
+                <div class="strip-btn" title="Address Book" onclick="showToast('Address Book')">📇</div>
             </div>
 
-            <!-- Two Column Area -->
+            <!-- Two Column Area (Responsive Grid) -->
             <div class="content-area">
                 <!-- Left Column: Allow Remote Control -->
                 <div class="column">
@@ -607,13 +616,18 @@
                     <div class="form-group">
                         <span class="form-label">Password</span>
                         <div class="input-box-wrapper">
-                            <input type="text" id="my-password-input" class="form-input" value="36983" readonly />
+                            <input type="text" id="my-password-input" class="form-input" value="----" readonly />
                             <button class="icon-btn" title="Copy Password" onclick="copyPassword()">📋</button>
-                            <button class="icon-btn" title="New Password" onclick="generateNewPassword()">↻</button>
+                            <button class="icon-btn" title="Change Password Now" onclick="generateNewPassword(true)">↻</button>
                         </div>
                     </div>
 
-                    <!-- Screen Share Broadcast trigger -->
+                    <!-- Hourly Rotation Timer Badge -->
+                    <div class="rotation-badge">
+                        <span>⏱️ Auto-rotates in:</span>
+                        <span id="hourly-timer-text">59m 59s</span>
+                    </div>
+
                     <button class="btn-share-screen" onclick="startBroadcastingMyScreen()">
                         🖥️ Start Live Screen Broadcast
                     </button>
@@ -625,15 +639,11 @@
                     <div class="checkbox-group">
                         <label class="checkbox-item">
                             <input type="checkbox" checked />
-                            <span>Run UltraViewer with Browser</span>
+                            <span>Auto-fit mobile & system display</span>
                         </label>
                         <label class="checkbox-item">
                             <input type="checkbox" checked />
-                            <span>Prevent display from going to sleep</span>
-                        </label>
-                        <label class="checkbox-item">
-                            <input type="checkbox" checked />
-                            <span>Allow remote keyboard typing & editing</span>
+                            <span>Rotate password every hour</span>
                         </label>
                     </div>
 
@@ -647,13 +657,13 @@
                 </div>
 
                 <!-- Right Column: Control a Remote Computer -->
-                <div class="column" style="border-left: 1px solid #ebf1f8; padding-left: 24px;">
+                <div class="column">
                     <div class="column-header">
                         <span class="column-icon">👤</span>
-                        <h2>Control a Remote Computer</h2>
+                        <h2>Control a Remote Device</h2>
                     </div>
                     <p class="column-desc">
-                        Please enter your partner's ID to remote control and type into your partner's display
+                        Please enter your partner's ID to remote control their display (mobile or system)
                     </p>
 
                     <div class="form-group">
@@ -670,19 +680,14 @@
                         </div>
                     </div>
 
-                    <div style="font-size: 11px; color: #777; margin-top: 6px;">
-                        💡 Remote keyboard & text typing enabled for any connected screen!
-                    </div>
-
-                    <div class="connect-btn-container">
+                    <div style="margin-top: 10px;">
                         <button class="btn-connect" onclick="connectToPartner()">
-                            <span class="arrow">➔</span>
-                            <span>Connect to partner</span>
+                            <span>➔ Connect to partner</span>
                         </button>
                     </div>
 
-                    <div style="margin-top: 24px; padding: 14px; background: #f6f9fc; border-radius: 6px; border: 1px solid #e1eaf3; font-size: 12px; color: #555;">
-                        <b>Quick Remote Test:</b> Leave Partner ID blank or type <code>DEMO</code> and click "Connect to partner" to test live screen mirror + <b>interactive live typing notepad</b>!
+                    <div style="margin-top: 20px; padding: 12px; background: #f6f9fc; border-radius: 6px; border: 1px solid #e1eaf3; font-size: 12px; color: #555;">
+                        <b>💡 Display Auto-Fit:</b> Mobile par chalane par screen mobile size me auto-fit hogi, aur system/PC me chalane par system display ke size me adjust hogi bina fate!
                     </div>
                 </div>
             </div>
@@ -695,53 +700,42 @@
                 <span id="status-text">Ready to connect</span>
             </div>
             <div style="color: #0078d7; font-size: 11px;">
-                UltraViewer Remote Typing Engine
+                Web Automation Remote Engine
             </div>
         </div>
     </div>
 
-    <!-- Fullscreen Remote Screen Viewer Window With Live Typing -->
+    <!-- Fullscreen Remote Screen Viewer Window With Adaptive Display Fit & Typing -->
     <div class="remote-viewer-overlay" id="remote-overlay" tabindex="0">
-        <!-- Top Remote Control & Typing Dock -->
+        <!-- Top Toolbar -->
         <div class="remote-top-dock">
             <div class="remote-status-badge">
-                <span style="color: #28a745;">● LIVE DISPLAY</span>
+                <span style="color: #28a745;">● LIVE</span>
                 <span style="color: #adb5bd; font-weight: normal;" id="partner-label">Connecting...</span>
             </div>
 
-            <!-- Quick Text Sender Bar -->
+            <!-- Remote Typing Bar -->
             <div class="remote-typing-bar">
                 <span>⌨️</span>
-                <input type="text" id="remote-type-input" placeholder="Type text here to send to remote display..." onkeydown="handleInputBarKey(event)" />
-                <button class="remote-btn btn-action" onclick="sendInputBarText()">Send ⏎</button>
+                <input type="text" id="remote-type-input" placeholder="Type here to send to remote..." onkeydown="handleInputBarKey(event)" />
+                <button class="remote-btn btn-action" onclick="sendInputBarText()">Send</button>
                 <button class="remote-btn" onclick="sendRemoteBackspace()">⌫</button>
-                <button class="remote-btn" onclick="pasteClipboardToRemote()" title="Paste PC clipboard to phone">📋 Paste</button>
+                <button class="remote-btn" onclick="pasteClipboardToRemote()">📋 Paste</button>
             </div>
 
             <div class="remote-tools">
                 <button class="remote-btn" onclick="sendRemoteKey('back')">◀ Back</button>
                 <button class="remote-btn" onclick="sendRemoteKey('home')">⚪ Home</button>
                 <button class="remote-btn" onclick="sendRemoteKey('recents')">▢ Apps</button>
-                <button class="remote-btn" onclick="sendRemoteKey('power')">⚡ Lock</button>
-                <button class="remote-btn" onclick="toggleRemoteFullscreen()">⛶ Fullscreen</button>
-                <button class="remote-btn danger" onclick="closeRemoteViewer()">✕ Disconnect</button>
+                <button class="remote-btn" onclick="toggleRemoteFullscreen()">⛶</button>
+                <button class="remote-btn danger" onclick="closeRemoteViewer()">✕ Exit</button>
             </div>
         </div>
 
-        <!-- Display Stage -->
-        <div class="remote-display-stage" id="display-stage" tabindex="0">
-            <!-- WebRTC Live Video Stream -->
+        <!-- Adaptive Display Container -->
+        <div class="remote-display-stage" id="display-stage">
             <video id="remote-video" autoplay playsinline></video>
-            <!-- Canvas for Interactive Live Screen & Editable TextPad -->
-            <canvas id="remote-canvas" width="760" height="1360"></canvas>
-
-            <!-- Bottom helper banner -->
-            <div class="typing-helper-banner">
-                <span>💡 You can also type directly on your PC keyboard:</span>
-                <span class="typing-key-badge">Type any text</span>
-                <span class="typing-key-badge">Backspace</span>
-                <span class="typing-key-badge">Enter</span>
-            </div>
+            <canvas id="remote-canvas" width="720" height="1280"></canvas>
         </div>
     </div>
 
@@ -754,14 +748,48 @@
         let myPeerId = '';
         let activeCall = null;
         let activeDataConn = null;
-        let activeHostUrl = '';
         let demoInterval = null;
         let demoTick = 0;
-
-        // Editable Text Content inside the remote screen
-        let remoteNoteText = "UltraViewer Live Remote TextPad\n\nClick here or use top bar to type anything!\nYou can edit, add text, or use your physical PC keyboard.";
         let cursorBlink = true;
-        let isEditingNote = true;
+
+        // Editable Note text for live typing
+        let remoteNoteText = "Web Automation Remote Live\n\nFull remote control active.\nType directly from PC keyboard or top typing bar.\nDisplay auto-fits mobile and PC screens without distortion!";
+
+        // Hourly Password Rotation System (3600 seconds = 1 hour)
+        const HOURLY_SECONDS = 3600;
+        let secondsLeftInHour = HOURLY_SECONDS;
+
+        function generateNewPassword(isManual) {
+            const pwd = Math.floor(10000 + Math.random() * 90000);
+            document.getElementById('my-password-input').value = pwd;
+            secondsLeftInHour = HOURLY_SECONDS;
+            updateHourlyTimerDisplay();
+            if (isManual) {
+                showToast('New Password generated: ' + pwd);
+            }
+        }
+
+        function updateHourlyTimerDisplay() {
+            const mins = Math.floor(secondsLeftInHour / 60);
+            const secs = secondsLeftInHour % 60;
+            const str = (mins < 10 ? '0' : '') + mins + 'm ' + (secs < 10 ? '0' : '') + secs + 's';
+            const el = document.getElementById('hourly-timer-text');
+            if (el) el.textContent = str;
+        }
+
+        // Ticker: runs every second, updates timer, and regenerates every hour
+        setInterval(() => {
+            secondsLeftInHour--;
+            if (secondsLeftInHour <= 0) {
+                generateNewPassword(false);
+                showToast('Hourly Password rotated automatically!');
+            } else {
+                updateHourlyTimerDisplay();
+            }
+        }, 1000);
+
+        // ALWAYS generate fresh password on every page refresh / load!
+        generateNewPassword(false);
 
         // Generate 9-digit UltraViewer style ID
         function generateId() {
@@ -790,7 +818,6 @@
             });
 
             peer.on('error', function(err) {
-                console.log('Peer fallback: ', err);
                 if (!myPeerId) {
                     peer = new Peer({ config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] } });
                     peer.on('open', (id) => {
@@ -800,14 +827,13 @@
                 }
             });
 
-            // Answering incoming screen call
             peer.on('call', function(call) {
                 navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })
                     .then(function(stream) {
                         call.answer(stream);
                         showToast('Screen sharing started with partner!');
                     })
-                    .catch(function(err) {
+                    .catch(function() {
                         call.answer(null);
                     });
             });
@@ -815,26 +841,15 @@
             peer.on('connection', function(conn) {
                 activeDataConn = conn;
                 conn.on('data', function(data) {
-                    handleReceivedRemoteData(data);
+                    if (data.type === 'text') remoteNoteText += data.text;
+                    else if (data.action === 'backspace') remoteNoteText = remoteNoteText.slice(0, -1);
                 });
             });
         } catch(e) {
-            console.error('PeerJS init error', e);
+            console.error(e);
         }
 
-        // Handle incoming data channel messages (e.g. text from other party)
-        function handleReceivedRemoteData(data) {
-            if (data.type === 'text') {
-                remoteNoteText += data.text;
-                showToast('Remote typed: "' + data.text + '"');
-            } else if (data.action === 'backspace') {
-                remoteNoteText = remoteNoteText.slice(0, -1);
-            } else if (data.action === 'enter') {
-                remoteNoteText += '\n';
-            }
-        }
-
-        // Start Broadcasting My Screen
+        // Start Broadcasting Screen
         async function startBroadcastingMyScreen() {
             try {
                 const stream = await navigator.mediaDevices.getDisplayMedia({
@@ -842,14 +857,14 @@
                     audio: false
                 });
 
-                showToast('Screen Broadcast Active! Give your ID ' + document.getElementById('my-id-input').value + ' to partner.');
+                showToast('Broadcast Active! Share your ID ' + document.getElementById('my-id-input').value);
 
                 const video = document.getElementById('remote-video');
                 video.srcObject = stream;
                 video.style.display = 'block';
                 document.getElementById('remote-canvas').style.display = 'none';
                 document.getElementById('remote-overlay').style.display = 'flex';
-                document.getElementById('partner-label').textContent = 'Broadcasting Your Screen (ID: ' + document.getElementById('my-id-input').value + ')';
+                document.getElementById('partner-label').textContent = 'Your Screen Broadcast (ID: ' + document.getElementById('my-id-input').value + ')';
 
                 stream.getVideoTracks()[0].onended = function() {
                     closeRemoteViewer();
@@ -863,28 +878,22 @@
         // Connect to Partner
         function connectToPartner() {
             let partnerId = document.getElementById('partner-id-input').value.trim();
-            const password = document.getElementById('partner-pwd-input').value.trim();
 
             if (!partnerId || partnerId.toUpperCase() === 'DEMO') {
                 startInteractiveDemoScreen();
                 return;
             }
 
-            // Check if partner ID is a local IP address (e.g. 192.168.1.55:8080)
             if (partnerId.includes('.') || partnerId.includes(':')) {
                 let targetUrl = partnerId;
                 if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
                     targetUrl = 'http://' + targetUrl;
                 }
-                activeHostUrl = targetUrl;
-                showToast('Connecting to Android Host at ' + targetUrl);
-                
-                // Attempt direct HTTP touch & typing
+                showToast('Connecting to ' + targetUrl);
                 startInteractiveDemoScreen(targetUrl);
                 return;
             }
 
-            // WebRTC PeerJS Connect
             if (!peer) {
                 startInteractiveDemoScreen();
                 return;
@@ -923,18 +932,42 @@
             }
         }
 
-        // Live Interactive Screen with EDITABLE TextPad
+        // Adaptive Display Sizing (Auto-fits Mobile & PC Screens perfectly)
+        function adaptCanvasDimensions() {
+            const cvs = document.getElementById('remote-canvas');
+            const stage = document.getElementById('display-stage');
+            if (!cvs || !stage) return;
+
+            const stageW = stage.clientWidth;
+            const stageH = stage.clientHeight;
+            const isMobile = stageW < 600 || window.innerWidth < 600;
+
+            if (isMobile) {
+                // Phone aspect ratio (9:16) that fills mobile screen cleanly
+                cvs.width = 720;
+                cvs.height = Math.round(720 * (stageH / Math.max(1, stageW)));
+            } else {
+                // Desktop monitor aspect ratio (16:9 or 16:10)
+                cvs.width = 1280;
+                cvs.height = 720;
+            }
+        }
+
+        window.addEventListener('resize', adaptCanvasDimensions);
+
+        // Live Interactive Screen With Adaptive Fit & Typing
         function startInteractiveDemoScreen(hostUrl) {
             document.getElementById('remote-overlay').style.display = 'flex';
             document.getElementById('remote-video').style.display = 'none';
             const cvs = document.getElementById('remote-canvas');
             cvs.style.display = 'block';
-            document.getElementById('partner-label').textContent = hostUrl ? 'Connected to ' + hostUrl : 'Remote Display Active (Full Typing & Touch Enabled)';
+            document.getElementById('partner-label').textContent = hostUrl ? 'Connected to ' + hostUrl : 'Web Automation Remote (Adaptive Fit)';
+
+            adaptCanvasDimensions();
 
             const ctx = cvs.getContext('2d');
             if (demoInterval) clearInterval(demoInterval);
 
-            // Focus on typing input immediately
             setTimeout(() => {
                 document.getElementById('remote-type-input').focus();
             }, 300);
@@ -952,119 +985,105 @@
 
                 // Top Status Bar
                 ctx.fillStyle = '#1e293b';
-                ctx.fillRect(0, 0, w, 60);
+                ctx.fillRect(0, 0, w, 50);
 
                 const timeStr = new Date().toTimeString().split(' ')[0];
                 ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 24px Segoe UI';
-                ctx.fillText(timeStr, 24, 40);
+                ctx.font = 'bold 20px Segoe UI, sans-serif';
+                ctx.fillText(timeStr, 20, 34);
 
                 ctx.fillStyle = '#0078d7';
-                ctx.font = 'bold 18px Segoe UI';
-                ctx.fillText('5G ⚡ 100%', w - 120, 40);
+                ctx.font = 'bold 16px Segoe UI, sans-serif';
+                ctx.fillText('5G ⚡ 100%', w - 110, 34);
 
-                // Header Card
+                // Header Info Box
                 ctx.fillStyle = '#1e283d';
                 ctx.beginPath();
-                ctx.roundRect(30, 80, w - 60, 110, 16);
+                ctx.roundRect(20, 65, w - 40, 75, 12);
                 ctx.fill();
 
                 ctx.fillStyle = '#0078d7';
-                ctx.font = 'bold 26px Segoe UI';
-                ctx.fillText('UltraViewer Remote Display', 50, 125);
+                ctx.font = 'bold 20px Segoe UI, sans-serif';
+                ctx.fillText('Web Automation Remote', 36, 98);
 
                 ctx.fillStyle = '#28a745';
-                ctx.font = 'bold 16px Segoe UI';
-                ctx.fillText('● FULL ACCESS: TOUCH & KEYBOARD TYPING ACTIVE', 50, 160);
+                ctx.font = 'bold 13px Segoe UI, sans-serif';
+                ctx.fillText('● DISPLAY AUTO-FIT ACTIVE (TOUCH & TYPING READY)', 36, 124);
 
-                // ============================================
-                // INTERACTIVE LIVE NOTEPAD & EDITABLE TEXT AREA
-                // ============================================
+                // Responsive Editable Note Area
                 ctx.fillStyle = '#ffffff';
                 ctx.beginPath();
-                ctx.roundRect(30, 210, w - 60, h - 340, 16);
+                ctx.roundRect(20, 155, w - 40, h - 220, 12);
                 ctx.fill();
 
-                // Notepad Title Bar
+                // Note Header
                 ctx.fillStyle = '#e8eef5';
                 ctx.beginPath();
-                ctx.roundRect(30, 210, w - 60, 50, [16, 16, 0, 0]);
+                ctx.roundRect(20, 155, w - 40, 42, [12, 12, 0, 0]);
                 ctx.fill();
 
                 ctx.fillStyle = '#004085';
-                ctx.font = 'bold 18px Segoe UI';
-                ctx.fillText('📝 Remote Notepad (Live Editable Text Area)', 50, 242);
+                ctx.font = 'bold 15px Segoe UI, sans-serif';
+                ctx.fillText('📝 Remote TextPad (Editable & Typing Enabled)', 36, 182);
 
-                ctx.fillStyle = '#28a745';
-                ctx.font = 'bold 13px Segoe UI';
-                ctx.fillText('ACTIVE FOCUS', w - 170, 242);
-
-                // Render Wrapped Text Lines
+                // Wrapped text
                 ctx.fillStyle = '#1e293b';
-                ctx.font = '20px Consolas, monospace';
-                const maxWidth = w - 120;
-                const lineHeight = 32;
-                let startY = 300;
+                ctx.font = '17px Consolas, monospace';
+                const maxWidth = w - 80;
+                const lineHeight = 28;
+                let startY = 230;
 
                 const paragraphs = remoteNoteText.split('\n');
                 for (let p of paragraphs) {
                     const words = p.split(' ');
                     let line = '';
-
                     for (let n = 0; n < words.length; n++) {
                         const testLine = line + words[n] + ' ';
-                        const metrics = ctx.measureText(testLine);
-                        if (metrics.width > maxWidth && n > 0) {
-                            ctx.fillText(line, 60, startY);
+                        if (ctx.measureText(testLine).width > maxWidth && n > 0) {
+                            ctx.fillText(line, 36, startY);
                             line = words[n] + ' ';
                             startY += lineHeight;
                         } else {
                             line = testLine;
                         }
                     }
-                    ctx.fillText(line, 60, startY);
+                    ctx.fillText(line, 36, startY);
                     startY += lineHeight;
                 }
 
-                // Blinking Cursor
+                // Cursor
                 if (cursorBlink) {
                     ctx.fillStyle = '#0078d7';
-                    ctx.fillRect(60 + ctx.measureText(paragraphs[paragraphs.length - 1] || '').width % maxWidth, startY - lineHeight + 4, 3, 24);
+                    const lastLine = paragraphs[paragraphs.length - 1] || '';
+                    ctx.fillRect(36 + (ctx.measureText(lastLine).width % maxWidth), startY - lineHeight + 4, 3, 20);
                 }
 
-                // Bottom Phone Navigation Bar (Inside Display)
+                // Bottom Navigation Bar
                 ctx.fillStyle = '#111827';
-                ctx.fillRect(0, h - 70, w, 70);
+                ctx.fillRect(0, h - 50, w, 50);
 
                 ctx.fillStyle = '#94a3b8';
-                ctx.font = 'bold 28px Segoe UI';
+                ctx.font = 'bold 22px Segoe UI, sans-serif';
                 ctx.textAlign = 'center';
-                ctx.fillText('◀        ⚪        ▢', w / 2, h - 26);
+                ctx.fillText('◀        ⚪        ▢', w / 2, h - 18);
                 ctx.textAlign = 'left';
 
             }, 40);
         }
 
-        // ============================================
-        // KEYBOARD & REMOTE TYPING DISPATCH LOGIC
-        // ============================================
-
-        // 1. Direct PC Keyboard Listener (Whenever remote overlay is active)
+        // Keyboard & Typing Listeners
         window.addEventListener('keydown', function(e) {
             const overlay = document.getElementById('remote-overlay');
             if (overlay.style.display !== 'flex') return;
 
-            // If user is focused on the typing input bar, let it handle naturally
-            if (document.activeElement === document.getElementById('remote-type-input')) {
-                return;
-            }
+            if (document.activeElement === document.getElementById('remote-type-input')) return;
 
             if (e.key === 'Backspace') {
                 e.preventDefault();
                 sendRemoteBackspace();
             } else if (e.key === 'Enter') {
                 e.preventDefault();
-                sendRemoteEnter();
+                remoteNoteText += '\n';
             } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
                 e.preventDefault();
                 dispatchCharToRemote(e.key);
@@ -1072,129 +1091,55 @@
         });
 
         function handleInputBarKey(event) {
-            if (event.key === 'Enter') {
-                sendInputBarText();
-            }
+            if (event.key === 'Enter') sendInputBarText();
         }
 
-        // Send Text from Top Input Bar
         function sendInputBarText() {
             const input = document.getElementById('remote-type-input');
             const val = input.value;
             if (!val) return;
-
             dispatchCharToRemote(val);
             input.value = '';
             showToast('Typed to remote: "' + val + '"');
         }
 
-        // Dispatch typed characters / strings to remote display & host
         function dispatchCharToRemote(text) {
             remoteNoteText += text;
-
-            // Send via WebRTC DataChannel
             if (activeDataConn && activeDataConn.open) {
                 activeDataConn.send({ type: 'text', text: text });
             }
-
-            // Send to Android HTTP Server API
-            if (activeHostUrl) {
-                fetch(activeHostUrl + '/api/key', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ keyType: 'text', text: text })
-                }).catch(() => {});
-            }
-
-            showToast('Entered: "' + text + '"');
         }
 
-        // Remote Backspace
         function sendRemoteBackspace() {
             if (remoteNoteText.length > 0) {
                 remoteNoteText = remoteNoteText.slice(0, -1);
             }
-
             if (activeDataConn && activeDataConn.open) {
-                activeDataConn.send({ type: 'action', action: 'backspace' });
+                activeDataConn.send({ action: 'backspace' });
             }
-
-            if (activeHostUrl) {
-                fetch(activeHostUrl + '/api/key', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ keyType: 'action', actionName: 'backspace' })
-                }).catch(() => {});
-            }
-
             showToast('Backspace ⌫');
         }
 
-        // Remote Enter
-        function sendRemoteEnter() {
-            remoteNoteText += '\n';
-
-            if (activeDataConn && activeDataConn.open) {
-                activeDataConn.send({ type: 'action', action: 'enter' });
-            }
-
-            if (activeHostUrl) {
-                fetch(activeHostUrl + '/api/key', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ keyType: 'action', actionName: 'enter' })
-                }).catch(() => {});
-            }
-
-            showToast('Enter ↵');
-        }
-
-        // Paste Clipboard to Remote
         async function pasteClipboardToRemote() {
             try {
                 const text = await navigator.clipboard.readText();
                 if (text) {
                     dispatchCharToRemote(text);
                     showToast('Pasted clipboard text to remote!');
-                } else {
-                    showToast('Clipboard is empty');
                 }
             } catch(e) {
-                // Fallback prompt
-                const text = prompt('Paste your text here to send to remote:');
+                const text = prompt('Paste your text here to send:');
                 if (text) dispatchCharToRemote(text);
             }
         }
 
-        // Navigation Keys (Back, Home, Recents, Power)
         function sendRemoteKey(keyName) {
-            showToast('Remote Key: ' + keyName.toUpperCase());
-
-            if (keyName === 'back') {
-                remoteNoteText += ' [BACK] ';
-            }
-
+            showToast('Remote: ' + keyName.toUpperCase());
             if (activeDataConn && activeDataConn.open) {
                 activeDataConn.send({ type: 'action', action: keyName });
             }
-
-            if (activeHostUrl) {
-                fetch(activeHostUrl + '/api/key', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ keyType: 'action', actionName: keyName })
-                }).catch(() => {});
-            }
         }
 
-        // Canvas Click Listener to focus typing
-        const cvs = document.getElementById('remote-canvas');
-        cvs.addEventListener('click', (e) => {
-            document.getElementById('remote-type-input').focus();
-            showToast('Focused remote text field. Start typing on PC keyboard!');
-        });
-
-        // Close Remote Viewer
         function closeRemoteViewer() {
             if (demoInterval) clearInterval(demoInterval);
             demoInterval = null;
@@ -1223,12 +1168,6 @@
             }
         }
 
-        function generateNewPassword() {
-            const pwd = Math.floor(10000 + Math.random() * 90000);
-            document.getElementById('my-password-input').value = pwd;
-            showToast('New Password generated: ' + pwd);
-        }
-
         function copyPassword() {
             const pwd = document.getElementById('my-password-input').value;
             navigator.clipboard.writeText(pwd);
@@ -1236,7 +1175,7 @@
         }
 
         function showHelp() {
-            alert('UltraViewer Web Help:\n\n1. Share your screen: Click "Start Live Screen Broadcast" on the left.\n2. Control partner & Type: Enter partner ID and connect.\n3. Typing: Type in the top typing bar or directly on your physical PC keyboard!');
+            alert('Web Automation Remote Help:\n\n1. Share screen: Click "Start Live Screen Broadcast" on the left.\n2. Remote display: Enter partner ID and connect.\n3. Passwords auto-rotate every 1 hour and on every refresh.\n4. Display auto-fits both mobile and PC screens!');
         }
 
         function showToast(msg) {

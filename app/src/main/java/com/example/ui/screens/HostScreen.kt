@@ -115,10 +115,10 @@ fun HostScreen(
                                 .background(uvAccentBlue),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("U", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text("W", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                         }
                         Text(
-                            text = "UltraViewer 6.6 - Remote Support",
+                            text = "Web Automation Remote",
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp,
                             color = Color(0xFF1A3254)

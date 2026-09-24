@@ -1,6 +1,6 @@
 {
-  "name": "DeskFlow",
-  "description": "AnyDesk & UltraViewer style remote desktop & live screen sharing web app system to access and control mobile and PC displays remotely",
+  "name": "Web Automation Remote",
+  "description": "UltraViewer & AnyDesk style remote desktop and automation tool to access and control mobile and PC displays remotely",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

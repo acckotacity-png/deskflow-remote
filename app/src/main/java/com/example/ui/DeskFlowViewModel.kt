@@ -74,6 +74,13 @@ class DeskFlowViewModel(application: Application) : AndroidViewModel(application
                 _hostState.value = _hostState.value.copy(port = port)
             }
         }
+        // Hourly PIN rotation ticker
+        viewModelScope.launch {
+            while (true) {
+                settings.checkAndRotateHourlyPin()
+                kotlinx.coroutines.delay(60000L) // Check every minute
+            }
+        }
     }
 
     fun startHostServer(onNeedScreenCapture: () -> Unit) {
