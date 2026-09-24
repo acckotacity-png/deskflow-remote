@@ -132,7 +132,7 @@
             min-height: 420px;
         }
 
-        /* Side Strip (Hidden on small mobile screens to maximize space) */
+        /* Side Strip */
         .side-strip {
             width: 48px;
             background: #f0f4f9;
@@ -179,7 +179,6 @@
             background: #ffffff;
         }
 
-        /* Responsive Breakpoint for Mobile Phones */
         @media (max-width: 768px) {
             .content-area {
                 grid-template-columns: 1fr;
@@ -411,7 +410,7 @@
         }
 
         /* ====================================================
-           ADAPTIVE FULLSCREEN REMOTE VIEWER (MOBILE & PC FIT)
+           ADAPTIVE FULLSCREEN REMOTE VIEWER WITH INTERACTIVE CLICKS
            ==================================================== */
         .remote-viewer-overlay {
             position: fixed;
@@ -456,7 +455,7 @@
             white-space: nowrap;
         }
 
-        /* Responsive Typing Input Bar */
+        /* Remote Typing Bar */
         .remote-typing-bar {
             display: flex;
             align-items: center;
@@ -515,7 +514,7 @@
             border-color: #bd2130;
         }
 
-        /* Adaptive Display Container (Auto-fits Mobile & PC without tearing) */
+        /* Adaptive Display Container */
         .remote-display-stage {
             flex: 1;
             position: relative;
@@ -527,9 +526,9 @@
             width: 100%;
             height: calc(100% - 50px);
             touch-action: none;
+            cursor: pointer;
         }
 
-        /* Auto-fit Scalable Screen */
         #remote-video, #remote-canvas {
             max-width: 100%;
             max-height: 100%;
@@ -539,6 +538,33 @@
             display: block;
             margin: auto;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.9);
+            cursor: pointer;
+        }
+
+        /* Visual Click Ripple */
+        .click-ripple {
+            position: fixed;
+            border: 3px solid #00e5ff;
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            animation: ripple-anim 0.5s ease-out forwards;
+            z-index: 10001;
+        }
+
+        @keyframes ripple-anim {
+            0% {
+                width: 8px;
+                height: 8px;
+                opacity: 1;
+                border-color: #00e5ff;
+            }
+            100% {
+                width: 60px;
+                height: 60px;
+                opacity: 0;
+                border-color: #ff5722;
+            }
         }
 
         /* Toast Message */
@@ -580,7 +606,7 @@
         <div class="menu-bar">
             <div class="menu-items">
                 <span onclick="showToast('Web Automation Remote: Ready')">File</span>
-                <span onclick="showToast('Display: Auto Mobile & PC Fit Enabled')">Settings</span>
+                <span onclick="showToast('Display: Click & Touch Enabled')">Settings</span>
                 <span onclick="showHelp()">Help</span>
             </div>
             <div class="help-icon" onclick="showHelp()">?</div>
@@ -639,7 +665,7 @@
                     <div class="checkbox-group">
                         <label class="checkbox-item">
                             <input type="checkbox" checked />
-                            <span>Auto-fit mobile & system display</span>
+                            <span>Remote click & app access enabled</span>
                         </label>
                         <label class="checkbox-item">
                             <input type="checkbox" checked />
@@ -663,7 +689,7 @@
                         <h2>Control a Remote Device</h2>
                     </div>
                     <p class="column-desc">
-                        Please enter your partner's ID to remote control their display (mobile or system)
+                        Please enter your partner's ID to remote control their display with live mouse clicks
                     </p>
 
                     <div class="form-group">
@@ -687,7 +713,7 @@
                     </div>
 
                     <div style="margin-top: 20px; padding: 12px; background: #f6f9fc; border-radius: 6px; border: 1px solid #e1eaf3; font-size: 12px; color: #555;">
-                        <b>💡 Display Auto-Fit:</b> Mobile par chalane par screen mobile size me auto-fit hogi, aur system/PC me chalane par system display ke size me adjust hogi bina fate!
+                        <b>🖱️ Live Interactive Clicks:</b> Connecting allows clicking on buttons, icons, or apps on the remote display with real-time feedback!
                     </div>
                 </div>
             </div>
@@ -705,7 +731,7 @@
         </div>
     </div>
 
-    <!-- Fullscreen Remote Screen Viewer Window With Adaptive Display Fit & Typing -->
+    <!-- Fullscreen Remote Screen Viewer Window With Interactive Clicks & Typing -->
     <div class="remote-viewer-overlay" id="remote-overlay" tabindex="0">
         <!-- Top Toolbar -->
         <div class="remote-top-dock">
@@ -732,8 +758,8 @@
             </div>
         </div>
 
-        <!-- Adaptive Display Container -->
-        <div class="remote-display-stage" id="display-stage">
+        <!-- Adaptive Display Container with Click Handler -->
+        <div class="remote-display-stage" id="display-stage" onmousedown="handleDisplayClick(event)" ontouchstart="handleDisplayClick(event)">
             <video id="remote-video" autoplay playsinline></video>
             <canvas id="remote-canvas" width="720" height="1280"></canvas>
         </div>
@@ -748,12 +774,13 @@
         let myPeerId = '';
         let activeCall = null;
         let activeDataConn = null;
+        let activeHostUrl = '';
         let demoInterval = null;
         let demoTick = 0;
         let cursorBlink = true;
 
         // Editable Note text for live typing
-        let remoteNoteText = "Web Automation Remote Live\n\nFull remote control active.\nType directly from PC keyboard or top typing bar.\nDisplay auto-fits mobile and PC screens without distortion!";
+        let remoteNoteText = "Web Automation Remote Live\n\nFull remote click & typing active.\nClick any button, app icon, or text area.\nEvery click sends real touch coordinates!";
 
         // Hourly Password Rotation System (3600 seconds = 1 hour)
         const HOURLY_SECONDS = 3600;
@@ -777,7 +804,6 @@
             if (el) el.textContent = str;
         }
 
-        // Ticker: runs every second, updates timer, and regenerates every hour
         setInterval(() => {
             secondsLeftInHour--;
             if (secondsLeftInHour <= 0) {
@@ -788,10 +814,8 @@
             }
         }, 1000);
 
-        // ALWAYS generate fresh password on every page refresh / load!
         generateNewPassword(false);
 
-        // Generate 9-digit UltraViewer style ID
         function generateId() {
             return String(Math.floor(100000000 + Math.random() * 900000000));
         }
@@ -799,7 +823,7 @@
         const generatedId = generateId();
         document.getElementById('my-id-input').value = generatedId;
 
-        // Initialize PeerJS for genuine Internet P2P WebRTC screen connection
+        // Initialize PeerJS
         try {
             peer = new Peer(generatedId, {
                 debug: 1,
@@ -841,15 +865,35 @@
             peer.on('connection', function(conn) {
                 activeDataConn = conn;
                 conn.on('data', function(data) {
-                    if (data.type === 'text') remoteNoteText += data.text;
-                    else if (data.action === 'backspace') remoteNoteText = remoteNoteText.slice(0, -1);
+                    handleIncomingPeerData(data);
                 });
             });
         } catch(e) {
             console.error(e);
         }
 
-        // Start Broadcasting Screen
+        // Handle incoming data when hosting / sharing screen
+        function handleIncomingPeerData(data) {
+            if (data.type === 'touch') {
+                // Partner clicked on our screen! Execute click on host browser
+                const targetX = data.xRatio * window.innerWidth;
+                const targetY = data.yRatio * window.innerHeight;
+                createClickRipple(targetX, targetY);
+
+                const elem = document.elementFromPoint(targetX, targetY);
+                if (elem) {
+                    elem.click();
+                    if (elem.focus) elem.focus();
+                }
+                showToast('Remote Click executed at ' + Math.round(data.xRatio*100) + '%, ' + Math.round(data.yRatio*100) + '%');
+            } else if (data.type === 'text') {
+                remoteNoteText += data.text;
+            } else if (data.action === 'backspace') {
+                remoteNoteText = remoteNoteText.slice(0, -1);
+            }
+        }
+
+        // Start Screen Sharing
         async function startBroadcastingMyScreen() {
             try {
                 const stream = await navigator.mediaDevices.getDisplayMedia({
@@ -889,6 +933,7 @@
                 if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
                     targetUrl = 'http://' + targetUrl;
                 }
+                activeHostUrl = targetUrl;
                 showToast('Connecting to ' + targetUrl);
                 startInteractiveDemoScreen(targetUrl);
                 return;
@@ -932,7 +977,80 @@
             }
         }
 
-        // Adaptive Display Sizing (Auto-fits Mobile & PC Screens perfectly)
+        // ====================================================
+        // INTERACTIVE CLICK DISPATCHER (CLICKS ON BUTTONS & APPS)
+        // ====================================================
+        function handleDisplayClick(e) {
+            // Ignore click if user clicked on the top toolbar
+            if (e.target.closest('.remote-top-dock')) return;
+
+            const activeDisplay = document.getElementById('remote-video').style.display !== 'none'
+                ? document.getElementById('remote-video')
+                : document.getElementById('remote-canvas');
+
+            const rect = activeDisplay.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+            // Ensure click is inside the actual display element
+            if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) {
+                return;
+            }
+
+            const xRatio = (clientX - rect.left) / rect.width;
+            const yRatio = (clientY - rect.top) / rect.height;
+
+            // Visual animated ripple
+            createClickRipple(clientX, clientY);
+
+            // 1. Send touch to peer over WebRTC
+            if (activeDataConn && activeDataConn.open) {
+                activeDataConn.send({
+                    type: 'touch',
+                    action: 'click',
+                    xRatio: xRatio,
+                    yRatio: yRatio
+                });
+            }
+
+            // 2. Send touch to Android HTTP server
+            if (activeHostUrl) {
+                fetch(activeHostUrl + '/api/touch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'down',
+                        xRatio: xRatio,
+                        yRatio: yRatio,
+                        button: 0
+                    })
+                }).catch(() => {});
+            }
+
+            // 3. Demo simulation: check app clicks
+            if (yRatio > 0.88) {
+                // Clicked bottom navigation bar
+                if (xRatio < 0.33) sendRemoteKey('back');
+                else if (xRatio < 0.66) sendRemoteKey('home');
+                else sendRemoteKey('recents');
+            } else {
+                document.getElementById('remote-type-input').focus();
+            }
+
+            showToast('Touch Click Sent: ' + Math.round(xRatio * 100) + '%, ' + Math.round(yRatio * 100) + '%');
+        }
+
+        // Create visual touch ripple under click
+        function createClickRipple(x, y) {
+            const ripple = document.createElement('div');
+            ripple.className = 'click-ripple';
+            ripple.style.left = x + 'px';
+            ripple.style.top = y + 'px';
+            document.body.appendChild(ripple);
+            setTimeout(() => { ripple.remove(); }, 500);
+        }
+
+        // Canvas Auto-Fit Dimensions
         function adaptCanvasDimensions() {
             const cvs = document.getElementById('remote-canvas');
             const stage = document.getElementById('display-stage');
@@ -943,11 +1061,9 @@
             const isMobile = stageW < 600 || window.innerWidth < 600;
 
             if (isMobile) {
-                // Phone aspect ratio (9:16) that fills mobile screen cleanly
                 cvs.width = 720;
                 cvs.height = Math.round(720 * (stageH / Math.max(1, stageW)));
             } else {
-                // Desktop monitor aspect ratio (16:9 or 16:10)
                 cvs.width = 1280;
                 cvs.height = 720;
             }
@@ -955,13 +1071,13 @@
 
         window.addEventListener('resize', adaptCanvasDimensions);
 
-        // Live Interactive Screen With Adaptive Fit & Typing
+        // Demo Screen Canvas Loop
         function startInteractiveDemoScreen(hostUrl) {
             document.getElementById('remote-overlay').style.display = 'flex';
             document.getElementById('remote-video').style.display = 'none';
             const cvs = document.getElementById('remote-canvas');
             cvs.style.display = 'block';
-            document.getElementById('partner-label').textContent = hostUrl ? 'Connected to ' + hostUrl : 'Web Automation Remote (Adaptive Fit)';
+            document.getElementById('partner-label').textContent = hostUrl ? 'Connected to ' + hostUrl : 'Web Automation Remote (Interactive Click Active)';
 
             adaptCanvasDimensions();
 
@@ -1008,9 +1124,9 @@
 
                 ctx.fillStyle = '#28a745';
                 ctx.font = 'bold 13px Segoe UI, sans-serif';
-                ctx.fillText('● DISPLAY AUTO-FIT ACTIVE (TOUCH & TYPING READY)', 36, 124);
+                ctx.fillText('● CLICK & TOUCH DISPATCH ACTIVE', 36, 124);
 
-                // Responsive Editable Note Area
+                // Responsive Note Area
                 ctx.fillStyle = '#ffffff';
                 ctx.beginPath();
                 ctx.roundRect(20, 155, w - 40, h - 220, 12);
@@ -1024,7 +1140,7 @@
 
                 ctx.fillStyle = '#004085';
                 ctx.font = 'bold 15px Segoe UI, sans-serif';
-                ctx.fillText('📝 Remote TextPad (Editable & Typing Enabled)', 36, 182);
+                ctx.fillText('📝 Remote TextPad (Click Anywhere to Focus/Click)', 36, 182);
 
                 // Wrapped text
                 ctx.fillStyle = '#1e293b';
@@ -1100,13 +1216,20 @@
             if (!val) return;
             dispatchCharToRemote(val);
             input.value = '';
-            showToast('Typed to remote: "' + val + '"');
+            showToast('Typed: "' + val + '"');
         }
 
         function dispatchCharToRemote(text) {
             remoteNoteText += text;
             if (activeDataConn && activeDataConn.open) {
                 activeDataConn.send({ type: 'text', text: text });
+            }
+            if (activeHostUrl) {
+                fetch(activeHostUrl + '/api/key', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ keyType: 'text', text: text })
+                }).catch(() => {});
             }
         }
 
@@ -1116,6 +1239,13 @@
             }
             if (activeDataConn && activeDataConn.open) {
                 activeDataConn.send({ action: 'backspace' });
+            }
+            if (activeHostUrl) {
+                fetch(activeHostUrl + '/api/key', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ keyType: 'action', actionName: 'backspace' })
+                }).catch(() => {});
             }
             showToast('Backspace ⌫');
         }
@@ -1128,7 +1258,7 @@
                     showToast('Pasted clipboard text to remote!');
                 }
             } catch(e) {
-                const text = prompt('Paste your text here to send:');
+                const text = prompt('Paste your text here:');
                 if (text) dispatchCharToRemote(text);
             }
         }
@@ -1137,6 +1267,13 @@
             showToast('Remote: ' + keyName.toUpperCase());
             if (activeDataConn && activeDataConn.open) {
                 activeDataConn.send({ type: 'action', action: keyName });
+            }
+            if (activeHostUrl) {
+                fetch(activeHostUrl + '/api/key', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ keyType: 'action', actionName: keyName })
+                }).catch(() => {});
             }
         }
 
@@ -1175,7 +1312,7 @@
         }
 
         function showHelp() {
-            alert('Web Automation Remote Help:\n\n1. Share screen: Click "Start Live Screen Broadcast" on the left.\n2. Remote display: Enter partner ID and connect.\n3. Passwords auto-rotate every 1 hour and on every refresh.\n4. Display auto-fits both mobile and PC screens!');
+            alert('Web Automation Remote Help:\n\n1. Share screen: Click "Start Live Screen Broadcast" on the left.\n2. Remote display: Enter partner ID and connect.\n3. Click anywhere on the remote display to click buttons, icons, or open apps on partner device!');
         }
 
         function showToast(msg) {

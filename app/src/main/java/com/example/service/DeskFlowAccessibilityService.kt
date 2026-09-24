@@ -6,6 +6,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.graphics.Path
+import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -33,8 +34,6 @@ class DeskFlowAccessibilityService : AccessibilityService() {
     }
 
     private fun handleRemoteTouchEvent(event: RemoteTouchEvent) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return
-
         val wm = getSystemService(WINDOW_SERVICE) as WindowManager
         val metrics = DisplayMetrics()
         @Suppress("DEPRECATION")
@@ -43,16 +42,57 @@ class DeskFlowAccessibilityService : AccessibilityService() {
         val screenX = (event.xRatio * metrics.widthPixels).coerceIn(0f, metrics.widthPixels.toFloat())
         val screenY = (event.yRatio * metrics.heightPixels).coerceIn(0f, metrics.heightPixels.toFloat())
 
-        if (event.action == "down") {
-            // Tap gesture
-            val clickPath = Path().apply {
-                moveTo(screenX, screenY)
+        if (event.action == "down" || event.action == "click") {
+            // Method 1: Hardware-level simulated touch gesture via AccessibilityService (Android 7+)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                val clickPath = Path().apply {
+                    moveTo(screenX, screenY)
+                }
+                val gesture = GestureDescription.Builder()
+                    .addStroke(GestureDescription.StrokeDescription(clickPath, 0, 60))
+                    .build()
+
+                dispatchGesture(gesture, object : GestureResultCallback() {
+                    override fun onCompleted(gestureDescription: GestureDescription?) {
+                        super.onCompleted(gestureDescription)
+                    }
+                    override fun onCancelled(gestureDescription: GestureDescription?) {
+                        super.onCancelled(gestureDescription)
+                        // Fallback to accessibility node click if gesture was cancelled
+                        clickNodeAtCoordinates(screenX.toInt(), screenY.toInt())
+                    }
+                }, null)
             }
-            val gesture = GestureDescription.Builder()
-                .addStroke(GestureDescription.StrokeDescription(clickPath, 0, 50))
-                .build()
-            dispatchGesture(gesture, null, null)
+
+            // Method 2: High-reliability Accessibility Node Inspection & Direct Click
+            clickNodeAtCoordinates(screenX.toInt(), screenY.toInt())
         }
+    }
+
+    private fun clickNodeAtCoordinates(x: Int, y: Int) {
+        Handler(Looper.getMainLooper()).post {
+            val root = rootInActiveWindow ?: return@post
+            val target = findClickableNodeAt(root, x, y)
+            if (target != null) {
+                target.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+            }
+        }
+    }
+
+    private fun findClickableNodeAt(node: AccessibilityNodeInfo, x: Int, y: Int): AccessibilityNodeInfo? {
+        val bounds = Rect()
+        node.getBoundsInScreen(bounds)
+        if (!bounds.contains(x, y)) return null
+
+        // Search children first from topmost to bottommost
+        for (i in node.childCount - 1 downTo 0) {
+            val child = node.getChild(i) ?: continue
+            val found = findClickableNodeAt(child, x, y)
+            if (found != null) return found
+        }
+
+        if (node.isClickable) return node
+        return null
     }
 
     private fun handleRemoteKeyEvent(event: RemoteKeyEvent) {
@@ -92,7 +132,6 @@ class DeskFlowAccessibilityService : AccessibilityService() {
                 ?: findEditableNode(root)
 
             if (event.text.isNotEmpty()) {
-                // Type text into the remote target input field
                 if (targetNode != null) {
                     val currentText = targetNode.text?.toString() ?: ""
                     val updatedText = currentText + event.text
@@ -101,11 +140,9 @@ class DeskFlowAccessibilityService : AccessibilityService() {
                     }
                     val handled = targetNode.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
                     if (!handled) {
-                        // Fallback: Copy to clipboard and paste
                         pasteViaClipboard(targetNode, event.text)
                     }
                 } else {
-                    // Copy to device clipboard so user can paste anywhere
                     val cm = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                     cm.setPrimaryClip(ClipData.newPlainText("RemoteText", event.text))
                 }

@@ -274,6 +274,48 @@ fun HostScreen(
 
                     Spacer(modifier = Modifier.height(14.dp))
 
+                    // Accessibility Permission Check for Remote Clicking
+                    val isAccessibilityActive = com.example.service.DeskFlowAccessibilityService.isServiceRunning
+                    if (!isAccessibilityActive) {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            shape = RoundedCornerShape(4.dp),
+                            color = Color(0xFFFFF3CD),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFFEEBA))
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Text(
+                                    text = "⚠️ Remote Click Permission Required",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    color = Color(0xFF856404)
+                                )
+                                Text(
+                                    text = "To allow remote partner to click buttons & open apps on this phone, please turn ON Accessibility Service.",
+                                    fontSize = 11.sp,
+                                    color = Color(0xFF856404)
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Button(
+                                    onClick = {
+                                        val intent = android.content.Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
+                                            flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                                        }
+                                        context.startActivity(intent)
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF856404)),
+                                    shape = RoundedCornerShape(4.dp),
+                                    modifier = Modifier.height(34.dp)
+                                ) {
+                                    Text("Turn ON Remote Click in Settings", fontSize = 11.sp, color = Color.White)
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+
                     // Broadcast Screen Share Button
                     if (!hostState.isRunning) {
                         Button(
