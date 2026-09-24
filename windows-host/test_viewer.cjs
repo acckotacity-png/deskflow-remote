@@ -1,0 +1,23 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const elements=new Map();
+const element=id=>{if(!elements.has(id))elements.set(id,{value:id==='button'?'double':'',style:{},dataset:{},naturalWidth:1920,listeners:{},addEventListener(name,fn){this.listeners[name]=fn;},getBoundingClientRect(){return {left:10,top:20,width:960,height:540};},removeAttribute(){}});return elements.get(id);};
+const calls=[];
+const context=vm.createContext({document:{getElementById:element,querySelectorAll:()=>[]},URL,AbortSignal,setTimeout,Promise,fetch:async(path,options)=>{calls.push({path,options});return {ok:true,status:200,json:async()=>({ok:true})};}});
+const script=fs.readFileSync('windows-host/viewer.html','utf8').match(/<script>([\s\S]*?)<\/script>/)[1];
+vm.runInContext(script,context);
+(async()=>{
+ vm.runInContext('connected=true',context);
+ const screen=element('screen');
+ screen.listeners.click({clientX:490,clientY:290,currentTarget:screen});
+ await vm.runInContext('inputQueue',context);
+ assert.equal(calls.length,1);
+ assert.deepEqual(JSON.parse(calls[0].options.body),{type:'click',x:0.5,y:0.5,button:'double'});
+ assert.equal(calls[0].options.headers['X-DeskFlow'],'1');
+ screen.listeners.click({clientX:-10,clientY:290,currentTarget:screen});
+ await vm.runInContext('inputQueue',context);assert.equal(calls.length,1);
+ element('zoom').listeners.click();assert.equal(screen.style.width,'200%');
+ vm.runInContext('connected=false',context);
+ screen.listeners.click({clientX:490,clientY:290,currentTarget:screen});
+ await vm.runInContext('inputQueue',context);assert.equal(calls.length,1);
+ console.log('Viewer: normalized coordinates, one request per tap, offscreen rejection, zoom, disconnected input checks passed');
+})().catch(e=>{console.error(e);process.exitCode=1;});
