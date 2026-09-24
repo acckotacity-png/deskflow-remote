@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">DeskFlow</string>
+    <string name="accessibility_description">DeskFlow remote control service to simulate touch gestures and remote actions from connected client.</string>
+    <string name="notification_channel_name">DeskFlow Remote Session</string>
+    <string name="notification_channel_desc">Active screen sharing and remote desktop service status</string>
+    <string name="notification_title">DeskFlow Remote Server Active</string>
+    <string name="notification_text">Live display is accessible remotely via web browser or DeskFlow app</string>
+</resources>

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Back Screen (Host Display) -->
+    <path
+        android:pathData="M27,33 C27,30.8 28.8,29 31,29 L67,29 C69.2,29 71,30.8 71,33 L71,59 C71,61.2 69.2,63 67,63 L31,63 C28.8,63 27,61.2 27,59 Z"
+        android:strokeWidth="2.5"
+        android:strokeColor="#5C6B73"
+        android:fillColor="#1F2937" />
+
+    <!-- Back Screen Stand -->
+    <path
+        android:pathData="M44,63 L44,69 L54,69 L54,63"
+        android:fillColor="#5C6B73" />
+    <path
+        android:pathData="M40,69 L58,69"
+        android:strokeWidth="2"
+        android:strokeColor="#5C6B73"
+        android:strokeLineCap="round" />
+
+    <!-- Front Screen / Tablet / Mobile (Remote Controller) -->
+    <path
+        android:pathData="M45,43 C45,40.8 46.8,39 49,39 L81,39 C83.2,39 85,40.8 85,43 L85,73 C85,75.2 83.2,77 81,77 L49,77 C46.8,77 45,75.2 45,73 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="45"
+                android:startY="39"
+                android:endX="85"
+                android:endY="77"
+                android:type="linear">
+                <item android:color="#FF00E5FF" android:offset="0.0" />
+                <item android:color="#FF0077B6" android:offset="1.0" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Front Display Inner Screen Area -->
+    <path
+        android:pathData="M48,43 L82,43 L82,71 L48,71 Z"
+        android:fillColor="#0A1128" />
+
+    <!-- Remote Screen Live Stream Lines / Signal Beam -->
+    <path
+        android:pathData="M52,48 L78,48"
+        android:strokeWidth="2"
+        android:strokeColor="#00E5FF"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M52,54 L72,54"
+        android:strokeWidth="2"
+        android:strokeColor="#00F0FF"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M52,60 L66,60"
+        android:strokeWidth="2"
+        android:strokeColor="#38BDF8"
+        android:strokeLineCap="round" />
+
+    <!-- Remote Pointer / Cursor on Display -->
+    <path
+        android:pathData="M68,58 L68,69 L72,66 L75,71 L77,70 L74,65 L78,65 Z"
+        android:fillColor="#FFB703"
+        android:strokeWidth="0.8"
+        android:strokeColor="#FFFFFF" />
+
+    <!-- Wireless Remote Link Pulse Indicator -->
+    <path
+        android:pathData="M34,42 C34,40 37,38 41,38"
+        android:strokeWidth="2"
+        android:strokeColor="#00E5FF"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M32,38 C32,35 37,33 43,33"
+        android:strokeWidth="1.8"
+        android:strokeColor="#38BDF8"
+        android:strokeLineCap="round" />
+
+    <!-- Small status dot -->
+    <path
+        android:pathData="M65,74m-1.5,0a1.5,1.5 0,1 1,3 0a1.5,1.5 0,1 1,-3 0"
+        android:fillColor="#00E5FF" />
+</vector>
