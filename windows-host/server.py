@@ -74,12 +74,28 @@ class Desktop:
 
 class Host(ThreadingHTTPServer):
     daemon_threads = True
-    def __init__(self, address, desktop, pin):
+    def __init__(self, address, desktop, pin, request_approval=None):
         self.desktop, self.pin = desktop, pin
         self.sessions = {}
+        self.pending = {}
+        self.request_approval = request_approval
+        self.public_origin = None
+        self.stopped = False
         self.attempts = {}
         self.state_lock = threading.Lock()
         super().__init__(address, Handler)
+
+    def resolve_approval(self, request_id, approved):
+        with self.state_lock:
+            request = self.pending.get(request_id)
+            if request and request['expires'] > time.monotonic():
+                request['status'] = 'approved' if approved else 'denied'
+
+    def revoke_all(self):
+        with self.state_lock:
+            self.stopped = True
+            self.sessions.clear()
+            self.pending.clear()
 
 class Handler(BaseHTTPRequestHandler):
     def setup(self):
@@ -98,6 +114,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('Cache-Control', 'no-store')
         self.send_header('X-Content-Type-Options', 'nosniff')
         self.send_header('X-Frame-Options', 'DENY')
+        self.send_header('Referrer-Policy', 'no-referrer')
         if cookie:
             self.send_header('Set-Cookie', cookie)
         self.end_headers()
@@ -111,6 +128,8 @@ class Handler(BaseHTTPRequestHandler):
         except (KeyError, ValueError):
             return False
         with self.server.state_lock:
+            if self.server.stopped:
+                return False
             expiry = self.server.sessions.get(token, 0)
             if expiry <= time.monotonic():
                 self.server.sessions.pop(token, None)
@@ -139,7 +158,8 @@ class Handler(BaseHTTPRequestHandler):
             self.reply(403, {'error': 'Use the controller served by this host.'})
             return
         origin = self.headers.get('Origin')
-        if origin and origin != 'http://' + self.headers.get('Host', ''):
+        expected_origin = self.server.public_origin or 'http://' + self.headers.get('Host', '')
+        if origin and origin != expected_origin:
             self.reply(403, {'error': 'Cross-origin input is disabled.'})
             return
         try:
@@ -151,6 +171,9 @@ class Handler(BaseHTTPRequestHandler):
                 raise ValueError()
         except (ValueError, OSError):
             self.reply(400, {'error': 'Invalid request'})
+            return
+        if self.server.stopped:
+            self.reply(503, {'error': 'The host stopped sharing.'})
             return
         if self.path == '/api/auth':
             address, now = self.client_address[0], time.monotonic()
@@ -165,11 +188,41 @@ class Handler(BaseHTTPRequestHandler):
                     failures.append(now)
                     self.reply(401, {'error': 'Incorrect PIN'})
                     return
-                token = secrets.token_urlsafe(32)
-                self.server.sessions = {k: v for k, v in self.server.sessions.items() if v > now}
-                self.server.sessions[token] = now + 3600
                 self.server.attempts.pop(address, None)
-            self.reply(200, {'ok': True}, cookie='deskflow_session=' + token + '; HttpOnly; SameSite=Strict; Path=/; Max-Age=3600')
+                self.server.pending = {k: v for k, v in self.server.pending.items() if v['expires'] > now}
+                if self.server.request_approval:
+                    if len(self.server.pending) >= 3:
+                        self.reply(429, {'error': 'The PC owner is handling another request. Try again later.'})
+                        return
+                    request_id = secrets.token_urlsafe(32)
+                    self.server.pending[request_id] = {'status': 'pending', 'expires': now + 60}
+                else:
+                    request_id = None
+            if request_id:
+                self.server.request_approval(request_id)
+                self.reply(202, {'pending': True, 'requestId': request_id})
+            else:
+                self.grant_session()
+        elif self.path == '/api/approval':
+            request_id = data.get('requestId')
+            if not isinstance(request_id, str):
+                self.reply(400, {'error': 'Invalid approval request'})
+                return
+            with self.server.state_lock:
+                request = self.server.pending.get(request_id)
+                if not request or request['expires'] <= time.monotonic():
+                    self.server.pending.pop(request_id, None)
+                    status = 'expired'
+                else:
+                    status = request['status']
+                    if status != 'pending':
+                        self.server.pending.pop(request_id, None)
+            if status == 'approved':
+                self.grant_session()
+            elif status == 'pending':
+                self.reply(202, {'pending': True, 'requestId': request_id})
+            else:
+                self.reply(403, {'error': 'The PC owner declined, stopped sharing, or the request expired.'})
         elif self.path == '/api/input':
             if not self.authenticated():
                 self.reply(401, {'error': 'Session expired. Reconnect using the PC PIN.'})
@@ -189,6 +242,17 @@ class Handler(BaseHTTPRequestHandler):
             self.reply(200, {'ok': True}, cookie='deskflow_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0')
         else:
             self.reply(404, {'error': 'Not found'})
+
+    def grant_session(self):
+        token, now = secrets.token_urlsafe(32), time.monotonic()
+        with self.server.state_lock:
+            if self.server.stopped:
+                self.reply(503, {'error': 'The host stopped sharing.'})
+                return
+            self.server.sessions = {k: v for k, v in self.server.sessions.items() if v > now}
+            self.server.sessions[token] = now + 3600
+        secure = '; Secure' if self.server.public_origin else ''
+        self.reply(200, {'ok': True}, cookie='deskflow_session=' + token + '; HttpOnly; SameSite=Strict; Path=/; Max-Age=3600' + secure)
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)

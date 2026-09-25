@@ -1,27 +1,43 @@
-# Mobile se Windows PC control (alag internet bhi)
+# DeskFlow Windows Host — attended remote support beta
 
-The GitHub Pages browser broadcast is **view-only**. Browser-generated clicks cannot control Windows apps. Turning the page into a PWA does not change this. The Windows host in this folder provides the missing native mouse/keyboard input and serves its own mobile controller.
+## For the person whose PC will be controlled
 
-## Setup
+1. Download **DeskFlow-Windows-x64.zip** from the repository's latest release.
+2. Extract the entire ZIP. Keep `DeskFlowHost.exe` and `_internal` together.
+3. Open `DeskFlowHost.exe` and click **Start internet session**.
+4. Send the HTTPS session link and the 8-digit PIN to your expected partner. Share the PIN separately from the link.
+5. When the approval dialog appears on this PC, choose **Yes** only for the person you expect. No screen frames or input are available before approval.
+6. Press **STOP sharing**, or close the host window, to revoke access and shut down the tunnel.
 
-1. On the PC install Python 3.11+ from https://www.python.org/downloads/windows/ (include the Python launcher).
-2. For different internet connections, install Tailscale on the PC and phone: https://tailscale.com/download. Sign both devices into your own tailnet and keep Tailscale connected. See https://tailscale.com/docs/how-to/connect-to-devices.
-3. Download this repository, extract it, and double-click `windows-host/Start-DeskFlow.bat` on the PC. First launch installs Pillow into a local `.venv` folder.
-4. Keep the host window open. It displays an 8-digit PIN and available addresses. For remote internet access, use the PC's Tailscale IPv4 address (usually `100.x.y.z`): `http://100.x.y.z:8765` in the mobile browser. The existing website's **Open Windows PC controller** button also accepts this address.
-5. Enter the PIN from the PC. Tap to single-click; choose **Double click** to open desktop icons. Use **Right click**, **Start**, navigation keys and scroll buttons as needed.
-6. Disconnect in the mobile page, or press Ctrl+C in the PC host window to stop all sessions.
+## For the person connecting (phone or PC)
 
-If Windows Firewall prompts, permit the host only for your intended private connection. If the VPN can reach the PC but the page times out, allow TCP 8765 only from your phone's Tailscale IP using Windows Firewall's inbound rule settings. Do not disable the firewall or open router ports.
+Open the owner's session link in a browser, enter the PIN, and wait for the owner to approve. No viewer installation, Python, Tailscale or router configuration is required. Select **Double click** to open Windows desktop icons. The controller also supports right click, Start, selected navigation keys, scroll and zoom.
 
-## Current limits
+Hindi: Jiska PC chalana hai woh app khole, Start kare, link/PIN bheje aur Allow kare. Aap mobile ya doosre PC ke browser mein us link ko kholkar connect karein.
 
-- Primary Windows monitor only. PC must be awake, signed in and unlocked.
-- Normal desktop apps; Windows secure desktop/UAC and elevated windows are not supported. Do not run this host as administrator as a workaround.
-- Single/double/right click, selected keyboard keys and vertical scroll; no drag-and-drop, full text typing, audio, clipboard or file transfer yet.
-- PIN/session authentication is separate from the old website's decorative ID/password. Sessions last one hour and are cleared when the host restarts.
-- The controller uses HTTP inside your private VPN (or trusted LAN). Do not expose it directly to the public internet. Tailscale supplies encrypted transport between devices.
-- This is a foreground helper, not an unattended Windows service. The host serves its own page to avoid HTTPS GitHub Pages trying to call an HTTP desktop endpoint.
+## Scope and limits
 
-## Tests
+- Windows 10/11 x64; primary monitor only. The PC must stay awake, signed in and unlocked.
+- This is an attended beta with temporary session links, not an UltraViewer clone with permanent IDs or an unattended service.
+- Internet sessions use Cloudflare Quick Tunnels. Links change on restart; availability is not guaranteed and Cloudflare describes Quick Tunnels as a testing service. Screen/control traffic passes through Cloudflare, which terminates HTTPS. Use only for sessions whose participants accept this relay.
+- The host listens on loopback only in the packaged app. Authentication uses an 8-digit random PIN, local owner approval, expiring HttpOnly/Secure/SameSite cookies and origin checks. Five wrong PIN attempts per minute are permitted. Sessions expire after one hour; stopping clears all sessions and pending approvals.
+- No automatic startup, hidden background service, UAC/elevated window control, drag-and-drop, full text keyboard entry, audio, clipboard or file transfer.
+- The executable is unsigned. Review the source and the published SHA-256 before running. Do not disable antivirus/SmartScreen to run it; an organization may require a signed build.
+- The original `server.py` CLI remains available for trusted LAN/Tailscale setups, with PIN authentication. The approval dialog belongs to `host_app.py`; use the packaged app for public internet sessions.
 
-Run `py -3 -m unittest discover -s windows-host -p "test_*.py" -v` from the repository root. Tests use a fake desktop and never click your real desktop. A real two-device test is still needed after Tailscale setup.
+## Build from source
+
+Install Python 3.11+ and use `build.ps1`. It creates a virtual environment, installs Pillow/PyInstaller, downloads the pinned official Cloudflare binary, verifies its SHA-256, and builds `dist/DeskFlowHost`. No administrator privileges are needed. Cloudflare's license is included under `vendor` and in the downloadable package.
+
+## Validation
+
+- `py -3 -m unittest discover -s windows-host -p "test_*.py" -v`: fake-desktop HTTP/authentication/approval/input regression suite.
+- `node windows-host/test_viewer.cjs`: mobile controller coordinate/input regression checks.
+- `.venv/Scripts/python.exe verify_native.py`: real capture and input test. It clicks only a visible target belonging to its own test window, restores the pointer, and refuses to click an obscured target.
+- `.venv/Scripts/python.exe verify_tunnel.py`: temporary public HTTPS round-trip against a generated test image and fake input handler; never shares the user's actual desktop.
+
+Cloudflare documentation: https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/do-more-with-tunnels/trycloudflare/
+
+### Validation on the build PC
+
+The native screen capture and click test passed against its own test window. The public HTTPS fake-desktop test passed using public DNS resolution with certificate validation enabled. This PC's default DNS returned NXDOMAIN for temporary tunnel hostnames during testing; a viewer on a network with the same DNS issue may need another working network or their network administrator's help. No Windows DNS/security settings were changed.

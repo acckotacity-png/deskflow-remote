@@ -20,3 +20,12 @@ debug.keystore
 # Local Windows host runtime
 windows-host/.venv/
 __pycache__/
+
+# Local portable Windows builds and downloaded vendor binaries
+windows-host/vendor/*.exe
+windows-host/build/
+windows-host/dist/
+windows-host/*.spec
+windows-host/release/
+
+windows-host/runtime/

@@ -2,8 +2,11 @@
 
 ## Mobile to Windows PC control
 
-Browser-only sharing cannot click Windows apps. The new [Windows host and mobile controller](windows-host/README.md) supplies native desktop input. For devices on different internet connections, use it over Tailscale; run `windows-host/Start-DeskFlow.bat` on the PC and open its private address on the phone. See the setup guide for requirements and current limits.
+Download the portable Windows app from [Releases](https://github.com/acckotacity-png/deskflow-remote/releases/latest). The owner starts an internet session, shares its temporary HTTPS link and PIN, and approves the viewer locally. A phone or another PC can connect using a browser, across different internet connections, without Python or VPN setup. See [Windows setup and beta limitations](windows-host/README.md).
 
+The website now leads to the real native host. Browser-only screen sharing cannot click Windows desktop apps. Temporary internet links use Cloudflare Quick Tunnels; this is an attended beta, not a permanent-ID or unattended remote-access product.
+
+The Android implementation below is separate from the Windows host.
 
 > **AnyDesk & UltraViewer style Remote Desktop and Live Display Streaming System for Android & Web**
 

@@ -62,6 +62,42 @@ class HostTests(unittest.TestCase):
         self.assertEqual(self.request('/../server.py')[0], 404)
         self.assertEqual(self.request('/')[0], 200)
 
+class ApprovalTests(HostTests):
+    def test_correct_pin_cannot_access_before_owner_approval(self):
+        requests = []
+        self.host.request_approval = requests.append
+        status, body, cookie = self.request('/api/auth', {'pin': '12345678'})
+        self.assertEqual(status, 202)
+        self.assertIsNone(cookie)
+        request_id = json.loads(body)['requestId']
+        self.assertEqual(requests, [request_id])
+        self.assertEqual(self.request('/api/frame')[0], 401)
+        self.assertEqual(self.request('/api/approval', {'requestId': request_id})[0], 202)
+        self.host.resolve_approval(request_id, True)
+        status, _, cookie = self.request('/api/approval', {'requestId': request_id})
+        self.assertEqual(status, 200)
+        self.cookie = cookie.split(';')[0]
+        self.assertEqual(self.request('/api/frame')[0], 200)
+        self.assertEqual(self.request('/api/approval', {'requestId': request_id})[0], 403)
+
+    def test_decline_and_stop_revoke_access(self):
+        self.host.request_approval = lambda rid: self.host.resolve_approval(rid, False)
+        _, body, _ = self.request('/api/auth', {'pin': '12345678'})
+        self.assertEqual(self.request('/api/approval', {'requestId': json.loads(body)['requestId']})[0], 403)
+        self.host.request_approval = None
+        self.login()
+        self.host.revoke_all()
+        self.assertEqual(self.request('/api/frame')[0], 401)
+        self.assertEqual(self.request('/api/input', {'type': 'click'})[0], 503)
+        self.assertEqual(self.desktop.events, [])
+
+    def test_tunnel_origin_and_secure_cookie(self):
+        self.host.public_origin = 'https://example.trycloudflare.com'
+        self.assertEqual(self.request('/api/auth', {'pin': '12345678'}, {'Origin': 'https://other.example'})[0], 403)
+        status, _, cookie = self.request('/api/auth', {'pin': '12345678'}, {'Origin': self.host.public_origin})
+        self.assertEqual(status, 200)
+        self.assertIn('; Secure', cookie)
+
 class DesktopInputTests(unittest.TestCase):
     def setUp(self):
         self.desktop = Desktop.__new__(Desktop)
