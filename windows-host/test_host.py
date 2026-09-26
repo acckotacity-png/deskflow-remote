@@ -119,6 +119,30 @@ class DesktopInputTests(unittest.TestCase):
         for x in (-1, 2, float('nan'), float('inf'), '1', True, None):
             with self.assertRaises(ValueError): self.desktop.input({'type': 'click', 'x': x, 'y': 0})
         self.desktop.user.SetCursorPos.assert_not_called()
+    def test_move_only_positions_cursor(self):
+        self.desktop.input({'type':'move','x':0.5,'y':0.5})
+        self.desktop.user.SetCursorPos.assert_called_once_with(960,540)
+        self.desktop.user.mouse_event.assert_not_called()
+
+    def test_unicode_text_uses_utf16_press_release(self):
+        events = []
+        def inject(count, inputs, size):
+            events.extend((inputs[i].data.ki.wScan, inputs[i].data.ki.dwFlags) for i in range(count))
+            return count
+        self.desktop.user.SendInput.side_effect = inject
+        text = 'Aन😀'
+        self.desktop.input({'type':'text','text':text})
+        raw = text.encode('utf-16-le')
+        units = [int.from_bytes(raw[i:i+2],'little') for i in range(0,len(raw),2)]
+        self.assertEqual(events, [(unit, flag) for unit in units for flag in (4,6)])
+
+    def test_invalid_and_blocked_text(self):
+        for text in ('', None, 'a'*513, chr(0xd800)):
+            with self.assertRaises(ValueError): self.desktop.input({'type':'text','text':text})
+        self.desktop.user.SendInput.assert_not_called()
+        self.desktop.user.SendInput.return_value = 0
+        with self.assertRaises(RuntimeError): self.desktop.input({'type':'text','text':'hello'})
+
     def test_rejected_pointer_does_not_click(self):
         self.desktop.user.SetCursorPos.return_value = 0
         with self.assertRaises(RuntimeError): self.desktop.input({'type': 'click', 'x': 0, 'y': 0})

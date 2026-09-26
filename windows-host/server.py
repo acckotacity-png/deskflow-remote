@@ -17,6 +17,18 @@ from pathlib import Path
 
 BASE = Path(__file__).resolve().parent
 
+class MouseInput(ctypes.Structure):
+    _fields_ = [('dx', wintypes.LONG), ('dy', wintypes.LONG), ('mouseData', wintypes.DWORD), ('dwFlags', wintypes.DWORD), ('time', wintypes.DWORD), ('dwExtraInfo', ctypes.c_size_t)]
+
+class KeyboardInput(ctypes.Structure):
+    _fields_ = [('wVk', wintypes.WORD), ('wScan', wintypes.WORD), ('dwFlags', wintypes.DWORD), ('time', wintypes.DWORD), ('dwExtraInfo', ctypes.c_size_t)]
+
+class InputUnion(ctypes.Union):
+    _fields_ = [('mi', MouseInput), ('ki', KeyboardInput)]
+
+class NativeInput(ctypes.Structure):
+    _fields_ = [('type', wintypes.DWORD), ('data', InputUnion)]
+
 class Desktop:
     def __init__(self):
         from PIL import ImageGrab
@@ -38,7 +50,7 @@ class Desktop:
 
     def input(self, data):
         kind = data.get('type')
-        if kind == 'click':
+        if kind in ('click', 'move'):
             x, y = data.get('x'), data.get('y')
             if any(isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) or not 0 <= v <= 1 for v in (x, y)):
                 raise ValueError('Invalid click coordinates')
@@ -49,12 +61,32 @@ class Desktop:
             with self.lock:
                 if not self.user.SetCursorPos(round(x * (width - 1)), round(y * (height - 1))):
                     raise RuntimeError('Windows blocked pointer input. Unlock the PC locally.')
+                if kind == 'move':
+                    return
                 down, up = (0x0008, 0x0010) if button == 'right' else (0x0002, 0x0004)
                 for _ in range(2 if button == 'double' else 1):
                     self.user.mouse_event(down, 0, 0, 0, 0)
                     self.user.mouse_event(up, 0, 0, 0, 0)
                     if button == 'double':
                         time.sleep(0.05)
+        elif kind == 'text':
+            text = data.get('text')
+            if not isinstance(text, str) or not text or len(text) > 512:
+                raise ValueError('Text must contain 1 to 512 characters')
+            try:
+                encoded = text.encode('utf-16-le')
+            except UnicodeEncodeError:
+                raise ValueError('Invalid Unicode text')
+            events = []
+            for index in range(0, len(encoded), 2):
+                unit = int.from_bytes(encoded[index:index + 2], 'little')
+                for flags in (0x0004, 0x0004 | 0x0002):
+                    events.append(NativeInput(type=1, data=InputUnion(ki=KeyboardInput(0, unit, flags, 0, 0))))
+            inputs = (NativeInput * len(events))(*events)
+            with self.lock:
+                sent = self.user.SendInput(len(events), inputs, ctypes.sizeof(NativeInput))
+            if sent != len(events):
+                raise RuntimeError('Windows blocked text entry. Select a normal editable field on the PC.')
         elif kind == 'key':
             keys = {'enter': 0x0D, 'escape': 0x1B, 'backspace': 0x08, 'tab': 0x09, 'windows': 0x5B, 'left': 0x25, 'up': 0x26, 'right': 0x27, 'down': 0x28}
             key = keys.get(data.get('key'))

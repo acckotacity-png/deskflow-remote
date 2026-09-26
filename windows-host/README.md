@@ -21,7 +21,7 @@ Hindi: Jiska PC chalana hai woh app khole, Start kare, link/PIN bheje aur Allow 
 - This is an attended beta with temporary session links, not an UltraViewer clone with permanent IDs or an unattended service.
 - Internet sessions use Cloudflare Quick Tunnels. Links change on restart; availability is not guaranteed and Cloudflare describes Quick Tunnels as a testing service. Screen/control traffic passes through Cloudflare, which terminates HTTPS. Use only for sessions whose participants accept this relay.
 - The host listens on loopback only in the packaged app. Authentication uses an 8-digit random PIN, local owner approval, expiring HttpOnly/Secure/SameSite cookies and origin checks. Five wrong PIN attempts per minute are permitted. Sessions expire after one hour; stopping clears all sessions and pending approvals.
-- No automatic startup, hidden background service, UAC/elevated window control, drag-and-drop, full text keyboard entry, audio, clipboard or file transfer.
+- No automatic startup, hidden background service, UAC/elevated window control, drag-and-drop, advanced keyboard shortcuts, audio, clipboard or file transfer.
 - The executable is unsigned. Review the source and the published SHA-256 before running. Do not disable antivirus/SmartScreen to run it; an organization may require a signed build.
 - The original `server.py` CLI remains available for trusted LAN/Tailscale setups, with PIN authentication. The approval dialog belongs to `host_app.py`; use the packaged app for public internet sessions.
 
@@ -41,3 +41,11 @@ Cloudflare documentation: https://developers.cloudflare.com/cloudflare-one/netwo
 ### Validation on the build PC
 
 The native screen capture and click test passed against its own test window. The public HTTPS fake-desktop test passed using public DNS resolution with certificate validation enabled. This PC's default DNS returned NXDOMAIN for temporary tunnel hostnames during testing; a viewer on a network with the same DNS issue may need another working network or their network administrator's help. No Windows DNS/security settings were changed.
+
+## Mobile keyboard and pointer (0.2.2)
+
+Open the floating DeskFlow menu and select **Open keyboard**. First select an editable field on the remote PC, type in the mobile text box, and press **Send text**. English, Hindi and emoji use Windows Unicode input. Text is sent on Send, allowing mobile IME composition to finish first; maximum 512 characters per submission. Use the existing Enter/Backspace buttons for remote editing.
+
+**Trackpad** is the default mobile mode: swipe anywhere on the screen area to move the independent arrow; tap to click where the arrow is, not where your finger touches. **Hide cursor / Show cursor** changes only the overlay visibility. **Direct touch / pan zoomed screen** keeps the previous direct-tap and zoom-panning behavior available. Existing click modes, zoom, fit, scroll, keys and approval rules remain available.
+
+Validation includes real Windows English/Hindi/emoji input into a test-owned entry, 22 backend tests, and mobile Chromium checks for relative touch, cursor visibility, input focus and text submission. Physical phone keyboards still depend on the phone/browser; this build has not been tested on a physical Android/iPhone here.
