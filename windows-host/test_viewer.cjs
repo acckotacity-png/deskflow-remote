@@ -1,8 +1,8 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const elements=new Map();
-const element=id=>{if(!elements.has(id))elements.set(id,{value:id==='button'?'double':'',style:{},dataset:{},naturalWidth:1920,listeners:{},addEventListener(name,fn){this.listeners[name]=fn;},getBoundingClientRect(){return {left:10,top:20,width:960,height:540};},removeAttribute(){}});return elements.get(id);};
+const element=id=>{if(!elements.has(id))elements.set(id,{value:id==='button'?'double':'',style:{},dataset:{},naturalWidth:1920,naturalHeight:1080,clientWidth:960,clientHeight:540,open:false,listeners:{},addEventListener(name,fn){this.listeners[name]=fn;},getBoundingClientRect(){return {left:10,top:20,width:960,height:540};},removeAttribute(){}});return elements.get(id);};
 const calls=[];
-const context=vm.createContext({document:{getElementById:element,querySelectorAll:()=>[]},URL,AbortSignal,setTimeout,Promise,fetch:async(path,options)=>{calls.push({path,options});return {ok:true,status:200,json:async()=>({ok:true})};}});
+const context=vm.createContext({window:{addEventListener(){}},document:{body:{classList:{add(){},remove(){}}},documentElement:{},addEventListener(){},getElementById:element,querySelectorAll:()=>[]},URL,AbortSignal,setTimeout,Promise,fetch:async(path,options)=>{calls.push({path,options});return {ok:true,status:200,json:async()=>({ok:true})};}});
 const script=fs.readFileSync('windows-host/viewer.html','utf8').match(/<script>([\s\S]*?)<\/script>/)[1];
 vm.runInContext(script,context);
 (async()=>{
@@ -15,9 +15,14 @@ vm.runInContext(script,context);
  assert.equal(calls[0].options.headers['X-DeskFlow'],'1');
  screen.listeners.click({clientX:-10,clientY:290,currentTarget:screen});
  await vm.runInContext('inputQueue',context);assert.equal(calls.length,1);
- element('zoom').listeners.click();assert.equal(screen.style.width,'200%');
+ element('zoom').listeners.click();assert.equal(screen.style.width,'1920px');assert.equal(screen.style.height,'1080px');
+ element('fit').listeners.click();assert.equal(screen.style.width,'960px');assert.equal(screen.style.height,'540px');
+ element('viewport').clientWidth=390;element('viewport').clientHeight=844;vm.runInContext('fitDisplay()',context);
+ assert.equal(screen.style.width,'390px');assert.equal(screen.style.height,'219.375px');assert.equal(element('stage').style.height,'844px');
+ element('tools').open=true;element('hide-tools').listeners.click();assert.equal(element('tools').open,false);
+ assert.equal(calls.length,1,'Display/menu actions must not send remote input');
  vm.runInContext('connected=false',context);
  screen.listeners.click({clientX:490,clientY:290,currentTarget:screen});
  await vm.runInContext('inputQueue',context);assert.equal(calls.length,1);
- console.log('Viewer: normalized coordinates, one request per tap, offscreen rejection, zoom, disconnected input checks passed');
+ console.log('Viewer: normalized coordinates, one request per tap, offscreen rejection, landscape/portrait fit, zoom, hidden controls and disconnected input checks passed');
 })().catch(e=>{console.error(e);process.exitCode=1;});
